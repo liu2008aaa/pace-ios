@@ -2,18 +2,12 @@
 //  StartButton.swift
 //  Pace.
 //
-//  出发按钮 — Phone 01 主 CTA。
+//  出发按钮 — Phone 01 主 CTA。物理质感设计。
 //
-//  视觉层：
-//  1. 实心深绿底 + 顶边高光（光从上来的物理感）
-//  2. 内部三圈同心椭圆雷达靶环（极淡虚线）
-//  3. 4 个角的取景器装饰
-//  4. ▶ 三角图标 + "出发" 中文 + "LET'S GO" 英文副标
-//  5. 持续呼吸光晕（外阴影 opacity 在 0.28 ↔ 0.42 间循环）
-//  6. 按下缩放到 0.985 + 中等强度触觉反馈
-//
-//  注：HTML demo 里的 conic-gradient 扫描弧需要 Skia 或 Metal，
-//  iOS 14 SwiftUI 还没现成 API（iOS 18+ 才有 ShaderLibrary），所以 v0.1 省略。
+//  iOS 14 兼容修订版：
+//  - LinearGradient/RadialGradient 改用 gradient: Gradient(colors:) 形式
+//  - .buttonStyle(PlainButtonStyle()) 替代 .buttonStyle(.plain)
+//  - .kerning() 替代 .tracking()
 //
 
 import SwiftUI
@@ -30,16 +24,16 @@ struct StartButton: View {
             onPress()
         } label: {
             ZStack {
-                // 背景：径向 + 线性双层
+                // 背景：径向渐变
                 RoundedRectangle(cornerRadius: 58)
                     .fill(
                         RadialGradient(
-                            colors: [
+                            gradient: Gradient(colors: [
                                 Theme.accent.opacity(0.32),
                                 Theme.accentDeep.opacity(0.55),
                                 Color(hex: 0x002319, opacity: 0.95),
                                 Color(hex: 0x00120C),
-                            ],
+                            ]),
                             center: .top,
                             startRadius: 0,
                             endRadius: 200
@@ -49,7 +43,7 @@ struct StartButton: View {
                 // 顶部高光层（光从上来）
                 VStack(spacing: 0) {
                     LinearGradient(
-                        colors: [Color.white.opacity(0.05), .clear],
+                        gradient: Gradient(colors: [Color.white.opacity(0.05), .clear]),
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -87,14 +81,14 @@ struct StartButton: View {
                         Text("出 发")
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(Theme.accentBright)
-                            .tracking(5.76) // 0.24em
+                            .kerning(5.76) // 0.24em
                             .shadow(color: Theme.accent.opacity(0.6), radius: 8)
                     }
 
                     Text("LET'S GO")
                         .font(PaceFont.mono(size: 8, weight: .semibold))
                         .foregroundColor(Theme.accent.opacity(0.6))
-                        .tracking(3.36) // 0.42em
+                        .kerning(3.36) // 0.42em
                         .padding(.top, 3)
                 }
             }
@@ -111,7 +105,7 @@ struct StartButton: View {
             .scaleEffect(isPressed ? 0.985 : 1.0)
             .animation(.easeInOut(duration: 0.2), value: isPressed)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PlainButtonStyle())
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in isPressed = true }
@@ -146,20 +140,17 @@ private struct CornerMarks: View {
     let lineColor = Theme.accent.opacity(0.55)
 
     var body: some View {
-        ZStack {
-            // 左上
-            VStack {
-                HStack {
-                    L_TopLeft().stroke(lineColor, lineWidth: 1).frame(width: size, height: size)
-                    Spacer()
-                    L_TopRight().stroke(lineColor, lineWidth: 1).frame(width: size, height: size)
-                }
+        VStack {
+            HStack {
+                L_TopLeft().stroke(lineColor, lineWidth: 1).frame(width: size, height: size)
                 Spacer()
-                HStack {
-                    L_BottomLeft().stroke(lineColor, lineWidth: 1).frame(width: size, height: size)
-                    Spacer()
-                    L_BottomRight().stroke(lineColor, lineWidth: 1).frame(width: size, height: size)
-                }
+                L_TopRight().stroke(lineColor, lineWidth: 1).frame(width: size, height: size)
+            }
+            Spacer()
+            HStack {
+                L_BottomLeft().stroke(lineColor, lineWidth: 1).frame(width: size, height: size)
+                Spacer()
+                L_BottomRight().stroke(lineColor, lineWidth: 1).frame(width: size, height: size)
             }
         }
     }

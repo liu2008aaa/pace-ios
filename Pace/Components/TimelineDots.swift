@@ -17,7 +17,7 @@ struct TimelineDots: View {
                 let intensity = intensities[i]
                 let age = Double(intensities.count - i) / Double(intensities.count) // 1 → 0
                 let opacity = min(0.18 + (1 - age) * 0.8 * intensity, 0.9)
-                let size = 4 + intensity * 4 // 4-8 px
+                let size: CGFloat = CGFloat(4 + intensity * 4) // 4-8 px
 
                 Circle()
                     .fill(Theme.accent.opacity(opacity))

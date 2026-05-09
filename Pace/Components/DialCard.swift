@@ -5,6 +5,11 @@
 //  WHOOP 风三联表盘单个 dial。环形进度 + 中央数字 + 标签 + 元信息。
 //  3 种状态：good (冷绿) / warn (金) / empty (虚线灰)。
 //
+//  iOS 14 兼容修订版：
+//  - .buttonStyle(PlainButtonStyle()) 替代 .buttonStyle(.plain) (iOS 15+)
+//  - .kerning() 替代 .tracking() (iOS 16+)
+//  - 显式 CGFloat 转换（Swift 5.4 不自动 Double <-> CGFloat）
+//
 
 import SwiftUI
 
@@ -23,7 +28,6 @@ struct DialCard: View {
     var onPress: (() -> Void)?
 
     private let ringRadius: CGFloat = 26
-    private var circumference: CGFloat { 2 * .pi * ringRadius }
 
     private var ringColor: Color {
         switch state {
@@ -61,6 +65,11 @@ struct DialCard: View {
         }
     }
 
+    /// 把 percent (Double 0-100) 转成 CGFloat (0-1)，用于 .trim
+    private var trimEnd: CGFloat {
+        CGFloat(max(0.0, min(1.0, percent / 100)))
+    }
+
     var body: some View {
         Button {
             onPress?()
@@ -71,7 +80,7 @@ struct DialCard: View {
                     Text(cornerMark)
                         .font(PaceFont.mono(size: 6.5, weight: .regular))
                         .foregroundColor(Theme.text4)
-                        .tracking(1.3)
+                        .kerning(1.3)
                     Spacer()
                 }
                 .padding(.top, 7)
@@ -94,7 +103,7 @@ struct DialCard: View {
                     // 进度圈
                     if state != .empty {
                         Circle()
-                            .trim(from: 0, to: max(0, min(1, percent / 100)))
+                            .trim(from: 0, to: trimEnd)
                             .stroke(ringColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                             .frame(width: ringRadius * 2, height: ringRadius * 2)
                             .rotationEffect(.degrees(-90))
@@ -110,7 +119,7 @@ struct DialCard: View {
                         Text(unit)
                             .font(PaceFont.mono(size: 6, weight: .regular))
                             .foregroundColor(Theme.text3)
-                            .tracking(0.5)
+                            .kerning(0.5)
                     }
                 }
                 .frame(height: 64)
@@ -120,14 +129,14 @@ struct DialCard: View {
                 Text(label)
                     .font(PaceFont.cn(size: 9.5))
                     .foregroundColor(Theme.text2)
-                    .tracking(2)
+                    .kerning(2)
                     .padding(.top, 4)
 
                 // 元信息
                 Text(meta)
                     .font(PaceFont.mono(size: 8))
                     .foregroundColor(metaColor)
-                    .tracking(0.4)
+                    .kerning(0.4)
                     .padding(.top, 3)
                     .padding(.bottom, 9)
             }
@@ -144,7 +153,7 @@ struct DialCard: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: Radius.lg))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

@@ -10,7 +10,7 @@ import SwiftUI
 struct Hairline: View {
     var body: some View {
         LinearGradient(
-            colors: [.clear, Theme.hairlineBright, Theme.hairlineBright, .clear],
+            gradient: Gradient(colors: [.clear, Theme.hairlineBright, Theme.hairlineBright, .clear]),
             startPoint: .leading,
             endPoint: .trailing
         )

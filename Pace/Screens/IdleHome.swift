@@ -4,22 +4,16 @@
 //
 //  Phone 01 · 待机首页
 //
-//  从上到下：
-//  - Brand strip (PACE. + ✦ 教练 chip)
-//  - Greeting (上午好，刘宇 + 上海·晴·18°C·适合跑步)
-//  - Hairline
-//  - 今日体感 + DAILY METRICS + 三联表盘 (状态/负荷/睡眠)
-//  - AI 一句话建议
-//  - 出发按钮（compact 116px，呼吸光晕）
-//  - 上次跑步信息
-//  - 14 天活力时间线
+//  iOS 14 兼容修订版：
+//  - 所有 .tracking() 改为 .kerning()（iOS 14+ Text 修饰符）
+//  - HStack 上的 .tracking 不可用，分发到每个 Text 的 .kerning
 //
 
 import SwiftUI
 
 struct IdleHome: View {
 
-    /// 计算时间问候语 (上午好 / 下午好 / 晚上好)
+    /// 计算时间问候语
     private var greeting: String {
         let h = Calendar.current.component(.hour, from: Date())
         switch h {
@@ -35,13 +29,15 @@ struct IdleHome: View {
 
                 // MARK: Brand strip
                 HStack {
-                    Text("PACE")
-                        .font(PaceFont.mono(size: 9.5, weight: .medium))
-                        .foregroundColor(Theme.text3)
-                        .tracking(1.7)
-                    + Text(".")
-                        .font(PaceFont.mono(size: 9.5, weight: .medium))
-                        .foregroundColor(Theme.accent)
+                    (
+                        Text("PACE")
+                            .font(PaceFont.mono(size: 9.5, weight: .medium))
+                            .foregroundColor(Theme.text3)
+                            .kerning(1.7)
+                        + Text(".")
+                            .font(PaceFont.mono(size: 9.5, weight: .medium))
+                            .foregroundColor(Theme.accent)
+                    )
 
                     Spacer()
 
@@ -52,7 +48,7 @@ struct IdleHome: View {
                         Text("教练")
                             .font(PaceFont.cn(size: 9))
                             .foregroundColor(Theme.accent)
-                            .tracking(1.08)
+                            .kerning(1.08)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
@@ -75,27 +71,34 @@ struct IdleHome: View {
                     Text("\(greeting),\(MockData.User.displayName)")
                         .font(.system(size: 19, weight: .medium))
                         .foregroundColor(Theme.text1)
-                        .tracking(0.76)
+                        .kerning(0.76)
 
                     HStack(spacing: 6) {
                         Text(MockData.Weather.city)
+                            .font(PaceFont.cn(size: 9.5))
                             .foregroundColor(Theme.text2)
-                        Text("·").foregroundColor(Theme.text4)
+                            .kerning(1.5)
+                        Text("·").font(PaceFont.cn(size: 9.5)).foregroundColor(Theme.text4)
                         Text(MockData.Weather.condition)
+                            .font(PaceFont.cn(size: 9.5))
                             .foregroundColor(Theme.text2)
-                        Text("·").foregroundColor(Theme.text4)
+                            .kerning(1.5)
+                        Text("·").font(PaceFont.cn(size: 9.5)).foregroundColor(Theme.text4)
                         Text("\(MockData.Weather.tempC)°C")
                             .font(PaceFont.mono(size: 9.5))
                             .foregroundColor(Theme.text2)
-                        Text("·").foregroundColor(Theme.text4)
+                            .kerning(0.4)
+                        Text("·").font(PaceFont.cn(size: 9.5)).foregroundColor(Theme.text4)
                         Text(MockData.Weather.wind)
+                            .font(PaceFont.cn(size: 9.5))
                             .foregroundColor(Theme.text2)
-                        Text("·").foregroundColor(Theme.text4)
+                            .kerning(1.5)
+                        Text("·").font(PaceFont.cn(size: 9.5)).foregroundColor(Theme.text4)
                         Text(MockData.Weather.suitability)
+                            .font(PaceFont.cn(size: 9.5))
                             .foregroundColor(Theme.accent)
+                            .kerning(1.5)
                     }
-                    .font(PaceFont.cn(size: 9.5))
-                    .tracking(1.5)
                 }
                 .padding(.top, 12)
 
@@ -108,12 +111,12 @@ struct IdleHome: View {
                     Text("今日体感")
                         .font(PaceFont.cn(size: 10))
                         .foregroundColor(Theme.text3)
-                        .tracking(3.6)
+                        .kerning(3.6)
                     Spacer()
                     Text("DAILY METRICS")
                         .font(PaceFont.mono(size: 8))
                         .foregroundColor(Theme.text4)
-                        .tracking(1.76)
+                        .kerning(1.76)
                 }
                 .padding(.top, 16)
                 .padding(.bottom, 8)
@@ -177,7 +180,7 @@ struct IdleHome: View {
                     Text("上次")
                         .font(PaceFont.cn(size: 10))
                         .foregroundColor(Theme.text3)
-                        .tracking(1.8)
+                        .kerning(1.8)
                     Text("  \(MockData.LastRun.date) · \(String(format: "%.2f", MockData.LastRun.distance)) km · \(MockData.LastRun.pace)")
                         .font(PaceFont.mono(size: 10))
                         .foregroundColor(Theme.text2)
@@ -194,12 +197,12 @@ struct IdleHome: View {
                         Text("最近 14 天")
                             .font(PaceFont.cn(size: 8.5))
                             .foregroundColor(Theme.text4)
-                            .tracking(1.53)
+                            .kerning(1.53)
                         Spacer()
                         Text("今天")
                             .font(PaceFont.mono(size: 8.5))
                             .foregroundColor(Theme.accent)
-                            .tracking(2.13)
+                            .kerning(2.13)
                     }
                     TimelineDots(intensities: MockData.timeline)
                 }
