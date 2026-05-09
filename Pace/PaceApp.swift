@@ -14,7 +14,8 @@ struct PaceApp: App {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(.dark) // 锁暗色，无视系统设置
-                .statusBarHidden(false)       // 保留 iOS 状态栏（不像 RN 版本画了假的）
+            // iOS 状态栏默认显示，无需显式开关
+            // (.statusBarHidden 是 iOS 16+，旧版用 .statusBar(hidden:))
         }
     }
 }
