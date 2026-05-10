@@ -112,12 +112,12 @@ struct DialCard: View {
                     // 中央数字
                     VStack(spacing: 2) {
                         Text(value)
-                            .font(PaceFont.mono(size: 22, weight: .semibold))
+                            .font(PaceFont.mono(size: 18, weight: .semibold))
                             .foregroundColor(valueColor)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                         Text(unit)
-                            .font(PaceFont.mono(size: 7, weight: .regular))
+                            .font(PaceFont.mono(size: 6.5, weight: .regular))
                             .foregroundColor(Theme.text3)
                             .kerning(0.5)
                     }
@@ -127,7 +127,7 @@ struct DialCard: View {
 
                 // 主标签
                 Text(label)
-                    .font(PaceFont.cn(size: 11))
+                    .font(PaceFont.cn(size: 10))
                     .foregroundColor(Theme.text2)
                     .kerning(2)
                     .padding(.top, 6)

@@ -104,7 +104,7 @@ struct IdleHome: View {
     private var greetingSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("\(greetingPrefix),\(MockData.User.displayName)")
-                .font(.system(size: 19, weight: .medium))
+                .font(.system(size: 17, weight: .medium))
                 .foregroundColor(Theme.text1)
                 .kerning(0.76)
 
