@@ -104,7 +104,7 @@ struct IdleHome: View {
     private var greetingSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("\(greetingPrefix),\(MockData.User.displayName)")
-                .font(.system(size: 17, weight: .medium))
+                .font(.system(size: 21, weight: .semibold))
                 .foregroundColor(Theme.text1)
                 .kerning(0.76)
 
@@ -160,12 +160,12 @@ struct IdleHome: View {
     private var metricsHeader: some View {
         HStack(alignment: .firstTextBaseline) {
             Text("今日体感")
-                .font(PaceFont.cn(size: 10))
+                .font(PaceFont.cn(size: 11, weight: .medium))
                 .foregroundColor(Theme.text3)
                 .kerning(3.6)
             Spacer()
             Text("DAILY METRICS")
-                .font(PaceFont.mono(size: 8))
+                .font(PaceFont.mono(size: 8.5, weight: .medium))
                 .foregroundColor(Theme.text4)
                 .kerning(1.76)
         }

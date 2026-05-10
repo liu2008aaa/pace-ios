@@ -112,12 +112,12 @@ struct DialCard: View {
                     // 中央数字
                     VStack(spacing: 2) {
                         Text(value)
-                            .font(PaceFont.mono(size: 18, weight: .semibold))
+                            .font(PaceFont.mono(size: 22, weight: .semibold))
                             .foregroundColor(valueColor)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                         Text(unit)
-                            .font(PaceFont.mono(size: 6.5, weight: .regular))
+                            .font(PaceFont.mono(size: 7, weight: .regular))
                             .foregroundColor(Theme.text3)
                             .kerning(0.5)
                     }
@@ -125,16 +125,16 @@ struct DialCard: View {
                 .frame(height: 76)
                 .padding(.top, 4)
 
-                // 主标签
+                // 主标签 — 12pt + .medium 给中文重量补偿苹方比 Noto Sans SC 更细
                 Text(label)
-                    .font(PaceFont.cn(size: 10))
+                    .font(PaceFont.cn(size: 12, weight: .medium))
                     .foregroundColor(Theme.text2)
                     .kerning(2)
                     .padding(.top, 6)
 
                 // 元信息
                 Text(meta)
-                    .font(PaceFont.mono(size: 9))
+                    .font(PaceFont.mono(size: 10))
                     .foregroundColor(metaColor)
                     .kerning(0.4)
                     .padding(.top, 4)
