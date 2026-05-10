@@ -37,13 +37,18 @@ struct PreRunView: View {
         ZStack {
             Theme.bgApp.ignoresSafeArea()
 
+            // v0.3.3: 重排 — 上下都加 Spacer 让 countdown 上半屏中线、checklist 下沉
+            // 原版 brandStrip 紧贴顶, content 全堆顶部 → 下半屏空一半
             VStack(alignment: .leading, spacing: 0) {
                 brandStrip
-                Spacer().frame(height: 24)
+
+                Spacer()                     // 顶部弹性空间
                 countdownSection
-                Spacer().frame(height: 28)
+                Spacer()                     // 中段弹性空间 (countdown ↔ checklist)
+
                 checklistSection
-                Spacer()
+
+                Spacer().frame(height: 30)   // 固定下间距 (checklist ↔ hint)
                 cancelHint
             }
             .padding(.horizontal, 16)
@@ -58,7 +63,6 @@ struct PreRunView: View {
             tickCountdown()
         }
         .onAppear {
-            // 进入页面给一次 light haptic 表示 "即将开始"
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
     }
@@ -161,13 +165,19 @@ struct PreRunView: View {
 }
 
 // MARK: - 倒计时圆环 (132x132, accent 渐变环 + 中央数字)
+//
+// v0.3.3: 加心跳呼吸效果 — 整个圆环 1s 一次 ease-in-out 微缩放 (0.97 ↔ 1.0)
+// + glow shadow opacity 同步呼吸, 视觉上像 "心脏鼓动等待出发"
+//
 private struct CountdownCircle: View {
-    let value: Int       // 当前剩余秒数
-    let total: Int       // 总秒数 (用于环填充比例)
+    let value: Int
+    let total: Int
+
+    @State private var heartbeat = false
 
     var body: some View {
         ZStack {
-            // 背景虚线圈 (HTML stroke-dasharray="2 4")
+            // 背景虚线靶环 (放大 4pt, dash 2-4)
             Circle()
                 .stroke(
                     Theme.accent.opacity(0.10),
@@ -177,9 +187,9 @@ private struct CountdownCircle: View {
 
             // 灰色底圈
             Circle()
-                .stroke(Color.white.opacity(0.05), lineWidth: 2)
+                .stroke(Color.white.opacity(0.06), lineWidth: 2)
 
-            // 进度环 (accent → accentBright 渐变)
+            // 进度环 — 字号大 + 渐变 + glow
             Circle()
                 .trim(from: 0, to: progressRatio)
                 .stroke(
@@ -188,18 +198,29 @@ private struct CountdownCircle: View {
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    style: StrokeStyle(lineWidth: 2, lineCap: .round)
+                    style: StrokeStyle(lineWidth: 3, lineCap: .round)  // 2 → 3
                 )
                 .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 1.0), value: value)
+                .shadow(color: Theme.accent.opacity(heartbeat ? 0.55 : 0.30), radius: heartbeat ? 14 : 8)
 
             // 中央数字
             Text("\(value)")
-                .font(.system(size: 56, weight: .semibold, design: .monospaced))
+                .font(.system(size: 64, weight: .bold, design: .monospaced))  // 56 → 64 + .bold
                 .foregroundColor(Theme.text1)
                 .kerning(-2)
-                .shadow(color: Theme.accent.opacity(0.4), radius: 12)
-                .animation(nil, value: value)  // 数字本身不要动画淡入淡出
+                .shadow(color: Theme.accent.opacity(heartbeat ? 0.6 : 0.35), radius: heartbeat ? 16 : 10)
+                .animation(nil, value: value)
+        }
+        .scaleEffect(heartbeat ? 1.03 : 1.0)
+        .onAppear {
+            // 1s 一次心跳 (ease-in-out, 自动反向往返 = 完整呼吸 2s)
+            // 频率与 60BPM 静息心率一致, 给"待出发"的仪式感
+            withAnimation(
+                Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true)
+            ) {
+                heartbeat = true
+            }
         }
     }
 
@@ -210,6 +231,12 @@ private struct CountdownCircle: View {
 }
 
 // MARK: - Checklist 一行 (✓ + label + detail)
+//
+// v0.3.3:
+//   - 边框: Theme.hairline / 0.5pt (看不见) → Theme.hairlineBright / 1pt
+//     (踩过的坑：SwiftUI 0.5pt 在 retina 上等于隐形, 1pt 才是 HTML 0.5px 的视觉)
+//   - 字号上调: label 12 → 13 .medium → .semibold,  detail 10 → 11
+//
 private struct ChecklistRow: View {
     let label: String
     let detail: String
@@ -221,31 +248,31 @@ private struct ChecklistRow: View {
                 Circle()
                     .fill(Theme.accent.opacity(0.15))
                 Circle()
-                    .stroke(Theme.accent.opacity(0.5), lineWidth: 0.8)
+                    .stroke(Theme.accent.opacity(0.55), lineWidth: 1)
                 Text("✓")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundColor(Theme.accent)
             }
-            .frame(width: 22, height: 22)
+            .frame(width: 24, height: 24)
 
             Text(label)
-                .font(PaceFont.cn(size: 12, weight: .medium))
+                .font(PaceFont.cn(size: 13, weight: .semibold))
                 .foregroundColor(Theme.text2)
                 .kerning(0.6)
 
             Spacer()
 
             Text(detail)
-                .font(PaceFont.mono(size: 10, weight: .regular))
+                .font(PaceFont.mono(size: 11, weight: .medium))
                 .foregroundColor(Theme.text3)
                 .kerning(0.4)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 12)
         .background(Theme.bgCard)
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(Theme.hairline, lineWidth: 0.5)
+                .stroke(Theme.hairlineBright, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }

@@ -110,40 +110,44 @@ struct RunningView: View {
     }
 
     // MARK: - Hero 实时配速 (running) / 已暂停 (paused)
+    // v0.3.3: 大胆放大 — 跑步 hero 是这屏的灵魂, 字号到顶到肩
+    //   pace: 92 → 110pt + .bold (HTML 84 × 1.31, 接近 HTML px × 1.30 上限)
+    //   caption: 10 → 12pt + .medium (重量补苹方比 Noto Sans SC 细)
+    //   unit:   9.5 → 11pt + .semibold
     private var heroSection: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 6) {
             Text(isPaused ? "已暂停" : "实时配速")
-                .font(PaceFont.cn(size: isPaused ? 11 : 10, weight: isPaused ? .semibold : .regular))
+                .font(PaceFont.cn(size: isPaused ? 13 : 12, weight: isPaused ? .semibold : .medium))
                 .foregroundColor(isPaused ? Theme.gold : Theme.text3)
-                .kerning(isPaused ? 4.4 : 3.2)
+                .kerning(isPaused ? 5.2 : 3.8)
                 .padding(.bottom, 6)
 
-            // 巨大配速数字 — running 92pt 呼吸 / paused 76pt 灰色静止
+            // 巨大配速数字 — running 110pt .bold 呼吸 / paused 86pt 灰色静止
             Text(MockData.Running.pace)
                 .font(.system(
-                    size: isPaused ? 76 : 92,
-                    weight: .semibold,
+                    size: isPaused ? 86 : 110,
+                    weight: .bold,
                     design: .monospaced
                 ))
                 .foregroundColor(isPaused ? Color.white.opacity(0.4) : Theme.accent)
-                .kerning(isPaused ? -3.0 : -3.6)
+                .kerning(isPaused ? -3.4 : -4.4)
                 .shadow(
                     color: isPaused ? .clear : Theme.accent.opacity(glowPhase ? 0.72 : 0.55),
-                    radius: glowPhase ? 16 : 12
+                    radius: glowPhase ? 18 : 14
                 )
                 .shadow(
                     color: isPaused ? .clear : Theme.accent.opacity(glowPhase ? 0.42 : 0.30),
-                    radius: glowPhase ? 32 : 24
+                    radius: glowPhase ? 36 : 28
                 )
                 .shadow(
                     color: isPaused ? .clear : Theme.accent.opacity(glowPhase ? 0.22 : 0.14),
-                    radius: glowPhase ? 60 : 48
+                    radius: glowPhase ? 64 : 52
                 )
 
             Text(isPaused ? "LAST PACE · 静止中" : "MIN / KM")
-                .font(PaceFont.mono(size: isPaused ? 9 : 9.5, weight: .medium))
-                .foregroundColor(isPaused ? Theme.text4 : Theme.accent.opacity(0.75))
-                .kerning(isPaused ? 3.2 : 3.8)
+                .font(PaceFont.mono(size: isPaused ? 10 : 11, weight: .semibold))
+                .foregroundColor(isPaused ? Theme.text4 : Theme.accent.opacity(0.85))
+                .kerning(isPaused ? 3.6 : 4.4)
                 .padding(.top, 4)
         }
     }
@@ -156,9 +160,9 @@ struct RunningView: View {
                 .frame(height: 0.5)
 
             Text("SPLIT \(String(format: "%02d", MockData.Running.splitNumber))")
-                .font(PaceFont.mono(size: 8, weight: .medium))
-                .foregroundColor(Theme.text4)
-                .kerning(2.4)
+                .font(PaceFont.mono(size: 9, weight: .semibold))
+                .foregroundColor(Theme.text3)
+                .kerning(2.7)
 
             Rectangle()
                 .fill(Theme.hairlineBright)
@@ -166,43 +170,43 @@ struct RunningView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 60)
-        .padding(.vertical, 18)
-        .opacity(isPaused ? 0.5 : 1)  // paused 时分隔线轻微淡化
+        .padding(.vertical, 20)
+        .opacity(isPaused ? 0.5 : 1)
     }
 
-    // MARK: - 距离 │ 时长 (paused 时数字保持白色, 不变灰)
+    // MARK: - 距离 │ 时长 — v0.3.3 字号上调 30 → 36 + .bold
     private var distanceTimeRow: some View {
-        HStack(alignment: .bottom, spacing: 28) {
-            VStack(spacing: 6) {
+        HStack(alignment: .bottom, spacing: 32) {
+            VStack(spacing: 8) {
                 HStack(alignment: .lastTextBaseline, spacing: 3) {
                     Text(String(format: "%.2f", MockData.Running.distanceKm))
-                        .font(PaceFont.mono(size: 30, weight: .semibold))
+                        .font(PaceFont.mono(size: 36, weight: .bold))
                         .foregroundColor(Theme.text1)
-                        .kerning(-0.6)
+                        .kerning(-0.7)
                     Text("km")
-                        .font(PaceFont.mono(size: 12, weight: .regular))
+                        .font(PaceFont.mono(size: 14, weight: .regular))
                         .foregroundColor(Theme.text3)
                 }
                 Text("距离")
-                    .font(PaceFont.cn(size: 10, weight: .medium))
+                    .font(PaceFont.cn(size: 11, weight: .medium))
                     .foregroundColor(Theme.text3)
-                    .kerning(2.2)
+                    .kerning(2.4)
             }
 
             Rectangle()
                 .fill(Theme.hairlineBright)
-                .frame(width: 0.5, height: 36)
-                .padding(.bottom, 16)
+                .frame(width: 0.5, height: 42)
+                .padding(.bottom, 18)
 
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 Text(MockData.Running.durationStr)
-                    .font(PaceFont.mono(size: 30, weight: .semibold))
+                    .font(PaceFont.mono(size: 36, weight: .bold))
                     .foregroundColor(Theme.text1)
-                    .kerning(-0.6)
+                    .kerning(-0.7)
                 Text("时长")
-                    .font(PaceFont.cn(size: 10, weight: .medium))
+                    .font(PaceFont.cn(size: 11, weight: .medium))
                     .foregroundColor(Theme.text3)
-                    .kerning(2.2)
+                    .kerning(2.4)
             }
         }
     }
@@ -242,35 +246,35 @@ struct RunningView: View {
         .padding(.bottom, 14)
     }
 
-    // MARK: - 心率卡 (字号上调: 22 → 28)
+    // MARK: - 心率卡 — v0.3.3 字号 28 → 32 + .bold
     private var hrCard: some View {
         HStack {
             HStack(spacing: 10) {
                 HeartShape()
                     .fill(Theme.heart)
-                    .frame(width: 16, height: 15)
+                    .frame(width: 18, height: 17)
 
                 Text("心率")
-                    .font(PaceFont.cn(size: 12, weight: .medium))
+                    .font(PaceFont.cn(size: 13, weight: .medium))
                     .foregroundColor(Theme.text2)
                     .kerning(1.4)
             }
 
             Spacer()
 
-            HStack(alignment: .lastTextBaseline, spacing: 5) {
+            HStack(alignment: .lastTextBaseline, spacing: 6) {
                 Text("\(MockData.Running.heartRate)")
-                    .font(PaceFont.mono(size: 28, weight: .semibold))
+                    .font(PaceFont.mono(size: 32, weight: .bold))
                     .foregroundColor(Theme.text1)
-                    .kerning(-0.5)
+                    .kerning(-0.6)
                 Text("BPM")
-                    .font(PaceFont.mono(size: 10, weight: .medium))
+                    .font(PaceFont.mono(size: 11, weight: .medium))
                     .foregroundColor(Theme.text3)
-                    .kerning(1.8)
+                    .kerning(2.0)
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 13)
+        .padding(.vertical, 14)
         .background(Theme.bgCard)
         .overlay(
             RoundedRectangle(cornerRadius: 14)

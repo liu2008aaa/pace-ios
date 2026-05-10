@@ -74,7 +74,8 @@ enum MockData {
 
     /// Phone 02 跑前预热数据
     enum PreRun {
-        static let countdownStart: Int = 3
+        /// v0.3.3: 3s 太快 (用户截图都来不及), 改 6s 让仪式感够
+        static let countdownStart: Int = 6
         static let gpsSatellites: Int = 12
         static let restingHR: Int = 76
         static let musicSource = "网易云 · 礼让模式"
