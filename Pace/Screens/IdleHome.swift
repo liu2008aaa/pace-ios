@@ -160,8 +160,8 @@ struct IdleHome: View {
                 }
                 .padding(.top, 12)
 
-                // MARK: 上限 80pt 的弹性间距 (避免在大屏上顶到中间形成大空洞)
-                Spacer().frame(maxHeight: 80)
+                // MARK: 弹性空间 (above START)
+                Spacer()
 
                 // MARK: 出发按钮
                 StartButton {
@@ -202,7 +202,10 @@ struct IdleHome: View {
                 }
                 .padding(.top, 16)
 
+                // MARK: 弹性空间 (after timeline) — 和 above START 的 Spacer 平分剩余空间
+                Spacer()
             }
+            .frame(maxHeight: .infinity)
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
