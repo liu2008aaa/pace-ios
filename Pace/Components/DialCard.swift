@@ -47,7 +47,7 @@ struct DialCard: View {
 
     private var borderColor: Color {
         switch state {
-        case .good: return Theme.hairline
+        case .good: return Theme.hairlineBright   // 0.5 太淡, 用 hairlineBright #2A2D33 出轮廓
         case .warn: return Theme.gold.opacity(0.22)
         case .empty: return Theme.hairlineBright
         }
@@ -148,7 +148,7 @@ struct DialCard: View {
                         borderColor,
                         style: state == .empty
                             ? StrokeStyle(lineWidth: 0.5, dash: [3, 3])
-                            : StrokeStyle(lineWidth: 0.5)
+                            : StrokeStyle(lineWidth: 1)  // 0.5 → 1 让边框看得见
                     )
             )
             .clipShape(RoundedRectangle(cornerRadius: Radius.lg))

@@ -122,27 +122,27 @@ struct IdleHome: View {
                 .kerning(1.5)
             Text("·")
                 .font(PaceFont.cn(size: 9.5))
-                .foregroundColor(Theme.text4)
+                .foregroundColor(Theme.text3)
             Text(MockData.Weather.condition)
                 .font(PaceFont.cn(size: 9.5))
                 .foregroundColor(Theme.text2)
                 .kerning(1.5)
             Text("·")
                 .font(PaceFont.cn(size: 9.5))
-                .foregroundColor(Theme.text4)
+                .foregroundColor(Theme.text3)
             Text("\(MockData.Weather.tempC)°C")
                 .font(PaceFont.mono(size: 9.5))
                 .foregroundColor(Theme.text2)
             Text("·")
                 .font(PaceFont.cn(size: 9.5))
-                .foregroundColor(Theme.text4)
+                .foregroundColor(Theme.text3)
             Text(MockData.Weather.wind)
                 .font(PaceFont.cn(size: 9.5))
                 .foregroundColor(Theme.text2)
                 .kerning(1.5)
             Text("·")
                 .font(PaceFont.cn(size: 9.5))
-                .foregroundColor(Theme.text4)
+                .foregroundColor(Theme.text3)
             Text(MockData.Weather.suitability)
                 .font(PaceFont.cn(size: 9.5))
                 .foregroundColor(Theme.accent)
@@ -296,7 +296,7 @@ private struct WeeklyRhythmCard: View {
         .background(Theme.bgCard)
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Theme.hairline, lineWidth: 0.5)
+                .stroke(Theme.hairlineBright, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
@@ -348,25 +348,27 @@ private struct WeeklyRhythmCard: View {
         }
     }
 
+    // chip: ↗ 12 天 — 数字 12 用白色 (HTML .rhythm-num-sm color: var(--text-1)),
+    // 箭头和"天"用 accent 绿色 (继承自 .rhythm-streak.good color: var(--accent))
     private var wrcStreakChip: some View {
         HStack(spacing: 3) {
             Text("↗")
                 .font(.system(size: 9))
                 .foregroundColor(Theme.accent)
             Text("\(MockData.WeekRhythm.streakDays)")
-                .font(PaceFont.mono(size: 9, weight: .medium))
-                .foregroundColor(Theme.accent)
+                .font(PaceFont.mono(size: 10, weight: .semibold))
+                .foregroundColor(Theme.text1)  // 白色 — 与 HTML 对齐
             Text("天")
                 .font(PaceFont.cn(size: 9))
                 .foregroundColor(Theme.accent)
                 .kerning(0.4)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 2)
-        .background(Theme.accent.opacity(0.08))
+        .padding(.horizontal, 9)
+        .padding(.vertical, 3)
+        .background(Theme.accent.opacity(0.06))
         .overlay(
             RoundedRectangle(cornerRadius: 999)
-                .stroke(Theme.accent.opacity(0.28), lineWidth: 0.5)
+                .stroke(Theme.accent.opacity(0.32), lineWidth: 0.5)
         )
         .clipShape(RoundedRectangle(cornerRadius: 999))
     }

@@ -17,6 +17,7 @@ struct StartButton: View {
 
     @State private var isPressed = false
     @State private var glowPhase = false
+    @State private var scanAngle: Double = 0   // 雷达扫描旋转角度
 
     var body: some View {
         Button {
@@ -24,7 +25,7 @@ struct StartButton: View {
             onPress()
         } label: {
             ZStack {
-                // 背景：径向渐变
+                // 背景：径向渐变（主层）
                 RoundedRectangle(cornerRadius: 58)
                     .fill(
                         RadialGradient(
@@ -40,10 +41,33 @@ struct StartButton: View {
                         )
                     )
 
-                // 顶部高光层（光从上来）
+                // 雷达扫描圈 — AngularGradient (iOS 14+) 7s 旋转一周
+                // 模拟 HTML conic-gradient + spin-slow, 仅末段 ~70° 亮起像扫描光束
+                RoundedRectangle(cornerRadius: 58)
+                    .fill(
+                        AngularGradient(
+                            gradient: Gradient(stops: [
+                                .init(color: .clear, location: 0.0),
+                                .init(color: .clear, location: 0.80),
+                                .init(color: Theme.accent.opacity(0.55), location: 0.93),
+                                .init(color: Theme.accentBright.opacity(0.85), location: 0.99),
+                                .init(color: .clear, location: 1.0),
+                            ]),
+                            center: .center,
+                            angle: .degrees(scanAngle)
+                        )
+                    )
+                    .blendMode(.plusLighter)  // 加色叠加, 不盖死背景
+                    .opacity(0.7)
+                    .clipShape(RoundedRectangle(cornerRadius: 58))
+
+                // 顶部高光层（HTML inset 0 1.5px 0 rgba(0,255,200,0.4) 等价）
                 VStack(spacing: 0) {
                     LinearGradient(
-                        gradient: Gradient(colors: [Color.white.opacity(0.05), .clear]),
+                        gradient: Gradient(colors: [
+                            Color(red: 0, green: 1.0, blue: 0.78).opacity(0.18),
+                            .clear,
+                        ]),
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -52,16 +76,16 @@ struct StartButton: View {
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 58))
 
-                // 内部雷达靶环
+                // 内部雷达靶环（静态椭圆虚线 ×3，opacity 略增让它可见）
                 ZStack {
                     Ellipse()
-                        .stroke(Theme.accent.opacity(0.06), style: StrokeStyle(lineWidth: 0.5, dash: [2, 5]))
+                        .stroke(Theme.accent.opacity(0.10), style: StrokeStyle(lineWidth: 0.5, dash: [2, 5]))
                         .frame(width: 120, height: 64)
                     Ellipse()
-                        .stroke(Theme.accent.opacity(0.05), style: StrokeStyle(lineWidth: 0.5, dash: [2, 5]))
+                        .stroke(Theme.accent.opacity(0.07), style: StrokeStyle(lineWidth: 0.5, dash: [2, 5]))
                         .frame(width: 184, height: 92)
                     Ellipse()
-                        .stroke(Theme.accent.opacity(0.04), style: StrokeStyle(lineWidth: 0.5, dash: [2, 5]))
+                        .stroke(Theme.accent.opacity(0.05), style: StrokeStyle(lineWidth: 0.5, dash: [2, 5]))
                         .frame(width: 240, height: 116)
                 }
 
@@ -76,13 +100,15 @@ struct StartButton: View {
                         Triangle()
                             .fill(Theme.accentBright)
                             .frame(width: 10, height: 12)
-                            .shadow(color: Theme.accent.opacity(0.6), radius: 4)
+                            .shadow(color: Theme.accent.opacity(0.7), radius: 5)
 
+                        // "出 发" — HTML 双层 text-shadow (18px 0.6 + 36px 0.3) 用 .shadow 链式堆叠
                         Text("出 发")
-                            .font(.system(size: 24, weight: .bold))
+                            .font(.system(size: 26, weight: .heavy))     // 24/.bold → 26/.heavy
                             .foregroundColor(Theme.accentBright)
-                            .kerning(5.76) // 0.24em
-                            .shadow(color: Theme.accent.opacity(0.6), radius: 8)
+                            .kerning(6.24)                                // 0.24em × 26
+                            .shadow(color: Theme.accent.opacity(0.6), radius: 9)   // 内层 (HTML 18px)
+                            .shadow(color: Theme.accent.opacity(0.3), radius: 18)  // 外层 (HTML 36px)
                     }
 
                     Text("LET'S GO")
@@ -98,9 +124,14 @@ struct StartButton: View {
                 RoundedRectangle(cornerRadius: 58)
                     .stroke(Theme.accent.opacity(0.42), lineWidth: 1)
             )
+            // 多层外光晕：HTML box-shadow 64px 0.32 + 24px 0.18 用链式 .shadow 堆叠
             .shadow(
-                color: Theme.accent.opacity(glowPhase ? 0.42 : 0.28),
-                radius: glowPhase ? 44 : 32
+                color: Theme.accent.opacity(glowPhase ? 0.42 : 0.32),
+                radius: glowPhase ? 38 : 32
+            )
+            .shadow(
+                color: Theme.accent.opacity(glowPhase ? 0.24 : 0.18),
+                radius: 14
             )
             .scaleEffect(isPressed ? 0.985 : 1.0)
             .animation(.easeInOut(duration: 0.2), value: isPressed)
@@ -112,9 +143,13 @@ struct StartButton: View {
                 .onEnded { _ in isPressed = false }
         )
         .onAppear {
-            // 启动呼吸光晕
+            // 呼吸光晕
             withAnimation(AppAnimation.glowBreathe) {
                 glowPhase = true
+            }
+            // 雷达扫描 — 7s 一周, linear 永续
+            withAnimation(.linear(duration: 7).repeatForever(autoreverses: false)) {
+                scanAngle = 360
             }
         }
     }
