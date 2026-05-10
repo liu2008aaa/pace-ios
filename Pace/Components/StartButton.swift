@@ -126,20 +126,32 @@ struct StartButton: View {
             .frame(height: 116)
             .frame(maxWidth: .infinity)
             .overlay(
+                // 边框 — 按下时也加亮 (0.42 → 0.62)
                 RoundedRectangle(cornerRadius: 58)
-                    .stroke(Theme.accent.opacity(0.42), lineWidth: 1)
+                    .stroke(
+                        Theme.accent.opacity(isPressed ? 0.62 : 0.42),
+                        lineWidth: 1
+                    )
             )
-            // 多层外光晕：HTML box-shadow 64px 0.32 + 24px 0.18 用链式 .shadow 堆叠
+            // 多层外光晕 — 按下时全面加强, 模拟 HTML :hover 状态
+            // 静态: 0.32 / 0.18  →  按下: 0.55 / 0.32 (HTML hover: 0.42 / 0.24)
+            // 在 SwiftUI 上 push 高一档因为 SwiftUI shadow 渲染比 CSS box-shadow 略弱
             .shadow(
-                color: Theme.accent.opacity(glowPhase ? 0.42 : 0.32),
-                radius: glowPhase ? 38 : 32
+                color: Theme.accent.opacity(
+                    isPressed ? 0.55 : (glowPhase ? 0.42 : 0.32)
+                ),
+                radius: isPressed ? 48 : (glowPhase ? 38 : 32)
             )
             .shadow(
-                color: Theme.accent.opacity(glowPhase ? 0.24 : 0.18),
-                radius: 14
+                color: Theme.accent.opacity(
+                    isPressed ? 0.32 : (glowPhase ? 0.24 : 0.18)
+                ),
+                radius: isPressed ? 18 : 14
             )
-            .scaleEffect(isPressed ? 0.985 : 1.0)
-            .animation(.easeInOut(duration: 0.2), value: isPressed)
+            // HTML hover transform: scale(1.015) — 反 iOS 习惯（iOS 通常按下缩小）
+            // 但 Pace 的设计语言就是"按下点亮"而非"按下下沉", 跟 HTML 一致
+            .scaleEffect(isPressed ? 1.015 : 1.0)
+            .animation(.spring(response: 0.28, dampingFraction: 0.65), value: isPressed)
         }
         .buttonStyle(PlainButtonStyle())
         .simultaneousGesture(
