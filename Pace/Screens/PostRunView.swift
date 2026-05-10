@@ -372,9 +372,10 @@ private struct RouteMapView: View {
                 .fill(Theme.accentBright)
 
             // 尾粒子 (相位偏移 -0.05 / -0.10, HTML 4s 周期里的 -0.2s / -0.4s)
-            RouteCometShape(t: max(0, cometT - 0.05), radius: 1.4)
+            // 显式 0.0 (而非 0) 避免 Swift 5.4 max(Int, Double) 推断歧义
+            RouteCometShape(t: max(0.0, cometT - 0.05), radius: 1.4)
                 .fill(Theme.accent.opacity(0.5))
-            RouteCometShape(t: max(0, cometT - 0.10), radius: 1.0)
+            RouteCometShape(t: max(0.0, cometT - 0.10), radius: 1.0)
                 .fill(Color(hex: 0x008866).opacity(0.4))
         }
         .onAppear {
@@ -433,10 +434,16 @@ private struct MajorGridShape: Shape {
     }
 }
 
-// MARK: - 彗星粒子 (Animatable Shape, t∈[0,1] 沿 bezier 路径)
+// MARK: - 彗星粒子 (Animatable Shape)
 //
-// 关键: animatableData 让 SwiftUI 每帧用插值后的 t 调 path(),
-// 这样位置每帧重算, 视觉上沿曲线流动 (而非两端点之间直线插值)
+// 实现策略 (v0.4.0.5 改写):
+//   原方案在 path() 里实时算 cubic bezier, Swift 5.4 严格类型在
+//   CGFloat × Double 混算上反复炸 (8 个错改了 2 次还在). 改成
+//   预计算 lookup table - 240 个点的 (Double, Double) 数组在
+//   static 函数里全 Double 算一次性算完, path() 只做查表 + 缩放.
+//   这样 path() 里完全不混 CGFloat/Double, 编译器没机会发飙.
+//
+// 240 点 = 60fps × 4s 一帧一个, 视觉完全平滑.
 //
 private struct RouteCometShape: Shape {
     var t: Double
@@ -447,60 +454,56 @@ private struct RouteCometShape: Shape {
         set { t = newValue }
     }
 
-    func path(in rect: CGRect) -> Path {
-        let pos = pointOnRoute(t: t, in: rect)
-        return Path(ellipseIn: CGRect(
-            x: pos.x - radius,
-            y: pos.y - radius,
-            width: radius * 2,
-            height: radius * 2
-        ))
-    }
+    /// 预计算 240 个点 (viewBox 280×86 坐标), static 一次性算完
+    private static let lookup: [(Double, Double)] = computeLookup()
 
-    /// 4 段 cubic bezier, 每段占 t 的 1/4
-    private func pointOnRoute(t: Double, in rect: CGRect) -> CGPoint {
-        let scaleX = rect.width / 280
-        let scaleY = rect.height / 86
-
-        // 4 段 bezier 控制点 (viewBox 坐标)
-        let segments: [(CGPoint, CGPoint, CGPoint, CGPoint)] = [
-            (CGPoint(x: 30, y: 65),  CGPoint(x: 50, y: 67),  CGPoint(x: 70, y: 46),  CGPoint(x: 90, y: 44)),
-            (CGPoint(x: 90, y: 44),  CGPoint(x: 110, y: 42), CGPoint(x: 130, y: 56), CGPoint(x: 150, y: 46)),
-            (CGPoint(x: 150, y: 46), CGPoint(x: 170, y: 36), CGPoint(x: 200, y: 26), CGPoint(x: 230, y: 30)),
-            (CGPoint(x: 230, y: 30), CGPoint(x: 260, y: 34), CGPoint(x: 258, y: 46), CGPoint(x: 254, y: 60)),
+    private static func computeLookup() -> [(Double, Double)] {
+        // 4 段 bezier (P0, P1, P2, P3), 全 Double, viewBox 280×86 坐标
+        let segs: [((Double, Double), (Double, Double), (Double, Double), (Double, Double))] = [
+            ((30, 65),  (50, 67),  (70, 46),  (90, 44)),
+            ((90, 44),  (110, 42), (130, 56), (150, 46)),
+            ((150, 46), (170, 36), (200, 26), (230, 30)),
+            ((230, 30), (260, 34), (258, 46), (254, 60)),
         ]
-
-        let clamped = max(0.0, min(1.0, t))
-        let segIdx = min(3, Int(clamped * 4))
-        // ⚠️ Swift 5.4 严格类型: 直接转成 CGFloat 后续全程 CGFloat 算
-        let localT = CGFloat((clamped * 4) - Double(segIdx))
-        let seg = segments[segIdx]
-        let pt = cubicBezier(t: localT, p0: seg.0, p1: seg.1, p2: seg.2, p3: seg.3)
-        return CGPoint(x: pt.x * scaleX, y: pt.y * scaleY)
+        let count = 240
+        var points: [(Double, Double)] = []
+        points.reserveCapacity(count)
+        for i in 0..<count {
+            let g = Double(i) / Double(count - 1)            // 0...1
+            let segIdx = min(3, Int(g * 4))
+            let local = (g * 4) - Double(segIdx)
+            let s = segs[segIdx]
+            // cubic bezier 全 Double 算 (没有 CGPoint, 不用担心类型)
+            let mt = 1 - local
+            let x = mt*mt*mt*s.0.0 + 3*mt*mt*local*s.1.0
+                  + 3*mt*local*local*s.2.0 + local*local*local*s.3.0
+            let y = mt*mt*mt*s.0.1 + 3*mt*mt*local*s.1.1
+                  + 3*mt*local*local*s.2.1 + local*local*local*s.3.1
+            points.append((x, y))
+        }
+        return points
     }
 
-    /// B(t) = (1-t)³P0 + 3(1-t)²t P1 + 3(1-t)t² P2 + t³ P3
-    /// 全程 CGFloat 算 (Swift 5.4 不自动 Double↔CGFloat 转, CGPoint init 期望 CGFloat)
-    /// 多项式拆成子表达式避免类型检查器超时 (§1.x 经验)
-    private func cubicBezier(t: CGFloat, p0: CGPoint, p1: CGPoint, p2: CGPoint, p3: CGPoint) -> CGPoint {
-        let mt: CGFloat = 1 - t
-        let mt2 = mt * mt
-        let mt3 = mt2 * mt
-        let t2 = t * t
-        let t3 = t2 * t
-        let three: CGFloat = 3
-
-        // 拆成 4 个子表达式各自 CGFloat * CGFloat * CGFloat = CGFloat, 不混 Double
-        let x0 = mt3 * p0.x
-        let x1 = three * mt2 * t * p1.x
-        let x2 = three * mt * t2 * p2.x
-        let x3 = t3 * p3.x
-        let y0 = mt3 * p0.y
-        let y1 = three * mt2 * t * p1.y
-        let y2 = three * mt * t2 * p2.y
-        let y3 = t3 * p3.y
-
-        return CGPoint(x: x0 + x1 + x2 + x3, y: y0 + y1 + y2 + y3)
+    func path(in rect: CGRect) -> Path {
+        // path() 里只做查表 + CGFloat 缩放, 不做 bezier 数学
+        let clamped: Double = max(0.0, min(1.0, t))
+        let lastIdx: Int = Self.lookup.count - 1
+        let idx: Int = min(lastIdx, Int(clamped * Double(lastIdx)))
+        let raw = Self.lookup[idx]
+        // (Double, Double) → CGPoint 只在这一处转换, 集中统一
+        // 显式 CGFloat 类型避免 Swift 5.4 推断歧义
+        let scaleX: CGFloat = rect.width / 280
+        let scaleY: CGFloat = rect.height / 86
+        let cx: CGFloat = CGFloat(raw.0) * scaleX
+        let cy: CGFloat = CGFloat(raw.1) * scaleY
+        let r: CGFloat = radius
+        let d: CGFloat = r * 2
+        return Path(ellipseIn: CGRect(
+            x: cx - r,
+            y: cy - r,
+            width: d,
+            height: d
+        ))
     }
 }
 
