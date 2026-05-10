@@ -24,7 +24,10 @@ struct IdleHome: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        ZStack(alignment: .topLeading) {
+            Theme.bgApp.ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 0) {
 
                 // MARK: Brand strip
                 HStack {
@@ -199,14 +202,10 @@ struct IdleHome: View {
                 }
                 .padding(.top, 16)
 
-                // MARK: 底部兜底弹性间距 (吸收剩余空间，避免 timeline 太靠近底)
-                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .background(Theme.bgApp.ignoresSafeArea())
     }
 
     // MARK: - PACE. 品牌字（Text + Text 拼接放计算属性里，避开 @ViewBuilder 解析坑）
