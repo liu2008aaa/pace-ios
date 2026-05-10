@@ -42,7 +42,7 @@ struct IdleHome: View {
                     metricsHeader
                     triadSection
                     aiSuggestion
-                    weeklyProgressSection
+                    weeklyRhythmSection
                 }
 
                 Spacer()
@@ -53,14 +53,9 @@ struct IdleHome: View {
                     // v0.2: navigate to /pre-run
                 }
 
-                // 底部 2 个 → 合并为 1 个 Group 子元素
-                Group {
-                    lastRunLine
-                    timelineSection
-                }
-
-                // 不再加底部 Spacer：让 timeline 自然贴到底部安全区附近
-                // 唯一的 Spacer 在 AI 和 StartButton 之间，吸收所有剩余空间
+                // 底部仅剩 14 天点阵带（含彗星扫描动画）。
+                // "上次" 一行已并入 WeeklyRhythmCard 的语义，故移除。
+                timelineSection
             }
             .frame(maxHeight: .infinity)
             .padding(.horizontal, 16)
@@ -227,28 +222,10 @@ struct IdleHome: View {
         .padding(.top, 12)
     }
 
-    // MARK: - 本周进度卡 (filler)
-    private var weeklyProgressSection: some View {
-        WeeklyProgressCard()
+    // MARK: - 本周节奏卡（7 日柱图 + 今日发光圆点 + 连跑 chip）
+    private var weeklyRhythmSection: some View {
+        WeeklyRhythmCard()
             .padding(.top, 16)
-    }
-
-    // MARK: - Last run line
-    private var lastRunLine: some View {
-        HStack(spacing: 0) {
-            Text("上次")
-                .font(PaceFont.cn(size: 10))
-                .foregroundColor(Theme.text3)
-                .kerning(1.8)
-            Text("  \(MockData.LastRun.date) · \(String(format: "%.2f", MockData.LastRun.distance)) km · \(MockData.LastRun.pace)")
-                .font(PaceFont.mono(size: 10))
-                .foregroundColor(Theme.text2)
-            Text("/km")
-                .font(PaceFont.mono(size: 10))
-                .foregroundColor(Theme.text3)
-        }
-        .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.top, 12)
     }
 
     // MARK: - 14-day timeline
@@ -299,18 +276,20 @@ struct IdleHome: View {
     }
 }
 
-// MARK: - 本周进度卡 (内联到此文件以避免 Xcode 12 的 "Add Files to Project" 摩擦)
+// MARK: - 本周节奏卡 (内联到此文件以避免 Xcode 12 的 "Add Files to Project" 摩擦)
 //
-// 该组件仅在 IdleHome 使用，所以直接放这里。后续如果其他屏复用，
-// 再提取到 Pace/Components/。
+// 设计点：
+// - 7 日柱图替代旧的"本周进度"线条（解决用户"天天画圆"重复感）
+// - 休息日（km == 0）显示极矮平条 + 字号变灰
+// - 今日柱顶点带发光脉冲圆点 + 自身有 accent 阴影发光
+// - 顶部连跑 chip 用 gold 色，断了以后切金/灰由调用方判断
 //
-private struct WeeklyProgressCard: View {
+private struct WeeklyRhythmCard: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            wpcHeaderRow
-            wpcMainStatRow
-            wpcProgressBar
-            wpcFooterRow
+        VStack(alignment: .leading, spacing: 10) {
+            wrcHeader
+            wrcMainStats
+            wrcBars
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
@@ -322,85 +301,151 @@ private struct WeeklyProgressCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
-    private var wpcHeaderRow: some View {
+    private var wrcHeader: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text("本周")
+            Text("本周节奏")
                 .font(PaceFont.cn(size: 10))
                 .foregroundColor(Theme.text3)
                 .kerning(2.4)
-            Spacer()
-            Text("WEEK")
+            Text("WEEKLY RHYTHM")
                 .font(PaceFont.mono(size: 8))
                 .foregroundColor(Theme.text4)
                 .kerning(1.7)
+            Spacer()
+            wrcStreakChip
         }
     }
 
-    private var wpcMainStatRow: some View {
+    private var wrcStreakChip: some View {
+        HStack(spacing: 3) {
+            Text("✦")
+                .font(.system(size: 9))
+                .foregroundColor(Theme.gold)
+            Text("\(MockData.WeekRhythm.streakDays) 天连跑")
+                .font(PaceFont.cn(size: 9))
+                .foregroundColor(Theme.gold)
+                .kerning(0.6)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 2.5)
+        .background(Theme.gold.opacity(0.08))
+        .overlay(
+            RoundedRectangle(cornerRadius: 999)
+                .stroke(Theme.gold.opacity(0.28), lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 999))
+    }
+
+    private var wrcMainStats: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(String(format: "%.1f", MockData.WeekProgress.kmThisWeek))
+            Text(MockData.WeekRhythm.totalKm)
                 .font(PaceFont.mono(size: 28, weight: .semibold))
                 .foregroundColor(Theme.text1)
-            Text("/ \(Int(MockData.WeekProgress.kmGoal)) km")
+            Text("km")
                 .font(PaceFont.mono(size: 11))
                 .foregroundColor(Theme.text3)
                 .kerning(0.4)
             Spacer()
-            wpcDeltaChip
-        }
-    }
-
-    private var wpcDeltaChip: some View {
-        Text("↑\(MockData.WeekProgress.deltaPercent)%")
-            .font(PaceFont.mono(size: 10, weight: .medium))
-            .foregroundColor(Theme.accent)
-            .kerning(0.5)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(Theme.accent.opacity(0.08))
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(Theme.accent.opacity(0.25), lineWidth: 0.5)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-    }
-
-    private var wpcProgressBar: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Theme.text4.opacity(0.3))
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Theme.accent.opacity(0.7),
-                                Theme.accentBright,
-                            ]),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: geo.size.width * CGFloat(MockData.WeekProgress.ratio))
-                    .shadow(color: Theme.accent.opacity(0.4), radius: 4)
-            }
-        }
-        .frame(height: 5)
-    }
-
-    private var wpcFooterRow: some View {
-        HStack(spacing: 6) {
-            Text("\(MockData.WeekProgress.runs) 次跑步")
-                .font(PaceFont.cn(size: 10))
-                .foregroundColor(Theme.text2)
-                .kerning(1.0)
-            Text("·")
-                .foregroundColor(Theme.text4)
-            Text("均速 \(MockData.WeekProgress.avgPace)/km")
+            Text("\(MockData.WeekRhythm.runs) 次")
                 .font(PaceFont.cn(size: 10))
                 .foregroundColor(Theme.text2)
                 .kerning(0.5)
-            Spacer()
+            Text("·")
+                .font(PaceFont.cn(size: 10))
+                .foregroundColor(Theme.text4)
+            Text("均速 \(MockData.WeekRhythm.avgPace)")
+                .font(PaceFont.mono(size: 10))
+                .foregroundColor(Theme.text2)
+        }
+    }
+
+    private var wrcBars: some View {
+        HStack(alignment: .bottom, spacing: 0) {
+            ForEach(0..<7) { i in
+                BarColumn(
+                    km: MockData.WeekRhythm.dayKm[i],
+                    label: MockData.WeekRhythm.dayLabels[i],
+                    isToday: i == MockData.WeekRhythm.todayIndex
+                )
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .frame(height: 64)
+    }
+}
+
+// MARK: - 单根柱 + 日字标签 + (今日)发光脉冲圆点
+private struct BarColumn: View {
+    let km: Double
+    let label: String
+    let isToday: Bool
+
+    /// 一周柱图基准最大 km（决定柱高映射）
+    private static let maxKm: Double = 6.5
+    /// 柱区域高度（不含底部文字）
+    private static let barAreaHeight: CGFloat = 50
+
+    @State private var pulse: CGFloat = 1.0
+
+    private var isRest: Bool { km == 0 }
+
+    private var barHeight: CGFloat {
+        if isRest { return 4 }
+        let ratio = min(1.0, km / BarColumn.maxKm)
+        return CGFloat(6.0 + ratio * 40.0)
+    }
+
+    private var barColor: Color {
+        if isRest { return Theme.text4.opacity(0.5) }
+        if isToday { return Theme.accentBright }
+        return Theme.accent.opacity(0.65)
+    }
+
+    private var labelColor: Color {
+        if isToday { return Theme.accent }
+        if isRest { return Theme.text4 }
+        return Theme.text3
+    }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ZStack(alignment: .bottom) {
+                // 占满整个柱区域，便于底部对齐
+                Color.clear
+                    .frame(height: BarColumn.barAreaHeight)
+
+                // 柱体
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(barColor)
+                    .frame(width: 6, height: barHeight)
+                    .shadow(
+                        color: isToday ? Theme.accent.opacity(0.7) : Color.clear,
+                        radius: 4
+                    )
+
+                // 今日柱顶发光脉冲圆点
+                if isToday {
+                    Circle()
+                        .fill(Theme.accent)
+                        .frame(width: 6 * pulse, height: 6 * pulse)
+                        .shadow(color: Theme.accent.opacity(0.9), radius: 4)
+                        .offset(y: -(barHeight + 4))
+                }
+            }
+
+            Text(label)
+                .font(PaceFont.cn(size: 9))
+                .foregroundColor(labelColor)
+                .kerning(0.5)
+        }
+        .onAppear {
+            if isToday {
+                withAnimation(
+                    Animation.easeInOut(duration: 1.2).repeatForever(autoreverses: true)
+                ) {
+                    pulse = 1.4
+                }
+            }
         }
     }
 }

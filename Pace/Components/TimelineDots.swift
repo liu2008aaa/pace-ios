@@ -29,6 +29,7 @@ struct TimelineDots: View {
             TodayRing()
         }
         .padding(.vertical, 8)
+        .overlay(CometStrip())
     }
 }
 
@@ -65,6 +66,56 @@ private struct TodayRing: View {
             .stroke(Theme.accent, lineWidth: 1.5)
             .frame(width: 11, height: 11)
             .shadow(color: Theme.accent.opacity(0.6), radius: 5)
+    }
+}
+
+// MARK: - 彗星扫描动画 (5s linear loop, head + halo + 2 trail particles)
+//
+// 实现思路：单一 @State phase: CGFloat 从 0 → 1 线性循环 5s，
+// 头部位于 phase * width，两个尾粒子分别滞后 0.036 / 0.072 周期。
+// phase < 0.072 时尾粒子位置为负，自然处于左边缘外不可见——无需条件渲染。
+//
+private struct CometStrip: View {
+    @State private var phase: CGFloat = 0
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                // 光晕（halo）
+                Circle()
+                    .fill(Theme.accent.opacity(0.22))
+                    .frame(width: 12, height: 12)
+                    .blur(radius: 3)
+                    .position(x: phase * geo.size.width, y: geo.size.height / 2)
+
+                // 后尾粒子（最淡，最远）
+                Circle()
+                    .fill(Theme.accent.opacity(0.3))
+                    .frame(width: 2, height: 2)
+                    .position(x: (phase - 0.072) * geo.size.width, y: geo.size.height / 2)
+
+                // 中尾粒子
+                Circle()
+                    .fill(Theme.accent.opacity(0.55))
+                    .frame(width: 3, height: 3)
+                    .position(x: (phase - 0.036) * geo.size.width, y: geo.size.height / 2)
+
+                // 彗头
+                Circle()
+                    .fill(Theme.accent)
+                    .frame(width: 3.5, height: 3.5)
+                    .shadow(color: Theme.accent.opacity(0.9), radius: 3)
+                    .position(x: phase * geo.size.width, y: geo.size.height / 2)
+            }
+            .onAppear {
+                withAnimation(
+                    Animation.linear(duration: 5).repeatForever(autoreverses: false)
+                ) {
+                    phase = 1
+                }
+            }
+        }
+        .allowsHitTesting(false)
     }
 }
 

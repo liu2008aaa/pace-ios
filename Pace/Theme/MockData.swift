@@ -54,6 +54,18 @@ enum MockData {
         }
     }
 
+    /// 本周节奏 (Weekly Rhythm) — 7 天小柱图数据
+    enum WeekRhythm {
+        /// 一二三四五六日 7 天的公里数。最后一项 = 今天。
+        static let dayKm: [Double] = [5.0, 6.2, 0, 4.0, 5.0, 0, 6.0]
+        static let dayLabels: [String] = ["一", "二", "三", "四", "五", "六", "日"]
+        static let todayIndex: Int = 6
+        static let totalKm: String = "26.0"
+        static let runs: Int = 5
+        static let avgPace: String = "5'18\""
+        static let streakDays: Int = 12
+    }
+
     /// 14 天活力点强度，0-1（越大越亮 / 越大尺寸）
     static let timeline: [Double] = [
         0.4, 0.5, 0.6, 0.4, 0.5, 0.7, 0.6,
