@@ -28,15 +28,7 @@ struct IdleHome: View {
 
                 // MARK: Brand strip
                 HStack {
-                    (
-                        Text("PACE")
-                            .font(PaceFont.mono(size: 9.5, weight: .medium))
-                            .foregroundColor(Theme.text3)
-                            .kerning(1.7)
-                        + Text(".")
-                            .font(PaceFont.mono(size: 9.5, weight: .medium))
-                            .foregroundColor(Theme.accent)
-                    )
+                    brandLogo
 
                     Spacer()
 
@@ -215,6 +207,17 @@ struct IdleHome: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Theme.bgApp.ignoresSafeArea())
+    }
+
+    // MARK: - PACE. 品牌字（Text + Text 拼接放计算属性里，避开 @ViewBuilder 解析坑）
+    private var brandLogo: Text {
+        Text("PACE")
+            .font(PaceFont.mono(size: 9.5, weight: .medium))
+            .foregroundColor(Theme.text3)
+            .kerning(1.7) +
+        Text(".")
+            .font(PaceFont.mono(size: 9.5, weight: .medium))
+            .foregroundColor(Theme.accent)
     }
 
     // MARK: - AI 文案带高亮（"负荷偏高" 显示金色）
