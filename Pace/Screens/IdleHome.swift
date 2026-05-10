@@ -212,7 +212,8 @@ struct IdleHome: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxHeight: .infinity, alignment: .top)
         .background(Theme.bgApp.ignoresSafeArea())
     }
 
