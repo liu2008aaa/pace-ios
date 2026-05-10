@@ -389,21 +389,25 @@ private struct RouteMapView: View {
 
 // MARK: - 暗格背景 (HTML <pattern id="mapGrid">)
 // 20×20 viewBox 单位的网格, 在 280×86 viewBox 上是 14 列 × 4.3 行
+//
+// v0.4.0.6: 全程 CGFloat — 之前 var x: Double 跟 scaleX (推断 CGFloat)
+// 相乘炸"Double × CGFloat", 这次循环变量也改 CGFloat
+//
 private struct DenseGridShape: Shape {
     func path(in rect: CGRect) -> Path {
         var p = Path()
-        let scaleX = rect.width / 280
-        let scaleY = rect.height / 86
-        let step: Double = 20
+        let scaleX: CGFloat = rect.width / 280
+        let scaleY: CGFloat = rect.height / 86
+        let step: CGFloat = 20
 
-        var x: Double = 0
+        var x: CGFloat = 0
         while x <= 280 {
             p.move(to: CGPoint(x: x * scaleX, y: 0))
             p.addLine(to: CGPoint(x: x * scaleX, y: rect.height))
             x += step
         }
 
-        var y: Double = 0
+        var y: CGFloat = 0
         while y <= 86 {
             p.move(to: CGPoint(x: 0, y: y * scaleY))
             p.addLine(to: CGPoint(x: rect.width, y: y * scaleY))
@@ -417,16 +421,16 @@ private struct DenseGridShape: Shape {
 private struct MajorGridShape: Shape {
     func path(in rect: CGRect) -> Path {
         var p = Path()
-        let scaleX = rect.width / 280
-        let scaleY = rect.height / 86
+        let scaleX: CGFloat = rect.width / 280
+        let scaleY: CGFloat = rect.height / 86
 
-        // 2 条横 (y=30, 60)
-        for y: Double in [30, 60] {
+        // 2 条横 (y=30, 60) — 循环变量 CGFloat
+        for y: CGFloat in [30, 60] {
             p.move(to: CGPoint(x: 0, y: y * scaleY))
             p.addLine(to: CGPoint(x: rect.width, y: y * scaleY))
         }
         // 2 条竖 (x=80, 200)
-        for x: Double in [80, 200] {
+        for x: CGFloat in [80, 200] {
             p.move(to: CGPoint(x: x * scaleX, y: 0))
             p.addLine(to: CGPoint(x: x * scaleX, y: rect.height))
         }
@@ -474,12 +478,24 @@ private struct RouteCometShape: Shape {
             let local = (g * 4) - Double(segIdx)
             let s = segs[segIdx]
             // cubic bezier 全 Double 算 (没有 CGPoint, 不用担心类型)
-            let mt = 1 - local
-            let x = mt*mt*mt*s.0.0 + 3*mt*mt*local*s.1.0
-                  + 3*mt*local*local*s.2.0 + local*local*local*s.3.0
-            let y = mt*mt*mt*s.0.1 + 3*mt*mt*local*s.1.1
-                  + 3*mt*local*local*s.2.1 + local*local*local*s.3.1
-            points.append((x, y))
+            // 拆子表达式避免 Swift 5.4 类型检查器在长 polynomial 上超时
+            let mt: Double = 1 - local
+            let mt2: Double = mt * mt
+            let mt3: Double = mt2 * mt
+            let l2: Double = local * local
+            let l3: Double = l2 * local
+            let three: Double = 3
+            // x
+            let xa: Double = mt3 * s.0.0
+            let xb: Double = three * mt2 * local * s.1.0
+            let xc: Double = three * mt * l2 * s.2.0
+            let xd: Double = l3 * s.3.0
+            // y
+            let ya: Double = mt3 * s.0.1
+            let yb: Double = three * mt2 * local * s.1.1
+            let yc: Double = three * mt * l2 * s.2.1
+            let yd: Double = l3 * s.3.1
+            points.append((xa + xb + xc + xd, ya + yb + yc + yd))
         }
         return points
     }
@@ -508,23 +524,27 @@ private struct RouteCometShape: Shape {
 }
 
 // 路线 Shape
+//
+// v0.4.0.6: 删 closure pt = {...}, 用 helper func 显式 CGFloat 类型,
+// 避免 Swift 5.4 在闭包捕获 + 类型推断的双重歧义炸
+//
 private struct RouteShape: Shape {
     func path(in rect: CGRect) -> Path {
         var p = Path()
-        let scaleX = rect.width / 280
-        let scaleY = rect.height / 86
-        let pt = { (x: Double, y: Double) -> CGPoint in
-            CGPoint(x: rect.minX + CGFloat(x) * scaleX, y: rect.minY + CGFloat(y) * scaleY)
+        let scaleX: CGFloat = rect.width / 280
+        let scaleY: CGFloat = rect.height / 86
+
+        // helper: viewBox(x,y) → 实际 rect 中的 CGPoint
+        // 显式参数 + 返回 CGFloat, 不依赖闭包类型推断
+        func vp(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: rect.minX + x * scaleX, y: rect.minY + y * scaleY)
         }
-        p.move(to: pt(30, 65))
-        // M 30,65 C 50,67 70,46 90,44
-        p.addCurve(to: pt(90, 44), control1: pt(50, 67), control2: pt(70, 46))
-        // S 130,56 150,46 (smooth — cp1 mirror = 2*end - prev_cp2 = 2*(90,44) - (70,46) = (110,42))
-        p.addCurve(to: pt(150, 46), control1: pt(110, 42), control2: pt(130, 56))
-        // S 200,26 230,30 (mirror cp = 2*(150,46) - (130,56) = (170,36))
-        p.addCurve(to: pt(230, 30), control1: pt(170, 36), control2: pt(200, 26))
-        // S 258,46 254,60 (mirror cp = 2*(230,30) - (200,26) = (260,34))
-        p.addCurve(to: pt(254, 60), control1: pt(260, 34), control2: pt(258, 46))
+
+        p.move(to: vp(30, 65))
+        p.addCurve(to: vp(90, 44),  control1: vp(50, 67),  control2: vp(70, 46))
+        p.addCurve(to: vp(150, 46), control1: vp(110, 42), control2: vp(130, 56))
+        p.addCurve(to: vp(230, 30), control1: vp(170, 36), control2: vp(200, 26))
+        p.addCurve(to: vp(254, 60), control1: vp(260, 34), control2: vp(258, 46))
         return p
     }
 }
@@ -537,9 +557,10 @@ private struct RouteEndpoint: View {
 
     var body: some View {
         GeometryReader { geo in
-            let scaleX = geo.size.width / 280
-            let scaleY = geo.size.height / 86
-            let pt = CGPoint(x: at.x * scaleX, y: at.y * scaleY)
+            // 显式 CGFloat 类型避免 Swift 5.4 推断歧义
+            let scaleX: CGFloat = geo.size.width / 280
+            let scaleY: CGFloat = geo.size.height / 86
+            let pt: CGPoint = CGPoint(x: at.x * scaleX, y: at.y * scaleY)
 
             switch kind {
             case .start:
@@ -588,8 +609,9 @@ private struct PaceChartView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let scaleX = geo.size.width / 280
-            let scaleY = geo.size.height / 64
+            // 显式 CGFloat 类型避免 Swift 5.4 推断歧义
+            let scaleX: CGFloat = geo.size.width / 280
+            let scaleY: CGFloat = geo.size.height / 64
             let xs: [CGFloat] = [14, 80, 146, 212, 266]
 
             ZStack {
