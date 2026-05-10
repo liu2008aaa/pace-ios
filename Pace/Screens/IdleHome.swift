@@ -327,7 +327,6 @@ private struct WeeklyRhythmCard: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .frame(height: 62)
     }
 
     // 底栏：左 "本周 26.0 km"，右 ↗ 12 天 chip
@@ -405,7 +404,8 @@ private struct BarColumn: View {
     private var barColor: Color {
         if isRest { return Color.white.opacity(0.08) }
         if isToday { return Theme.accentBright }
-        return Theme.accent.opacity(0.55)
+        // 0.55 → 0.42：拉大与今日柱（1.0 + glow）的明度差，让今日真正"立"起来
+        return Theme.accent.opacity(0.42)
     }
 
     private var labelColor: Color {
@@ -421,21 +421,27 @@ private struct BarColumn: View {
                 Color.clear
                     .frame(height: BarColumn.barAreaHeight)
 
+                // 基准线（HTML index.html#L4910 的 rgba(255,255,255,0.06)）
+                // 每列独立画一段 0.5pt 横线，相邻列首尾相接拼成完整地面线
+                Rectangle()
+                    .fill(Color.white.opacity(0.06))
+                    .frame(height: 0.5)
+
                 // 柱体（24pt 定宽，约占列宽 50% — 接近 HTML 28/40 比例）
                 RoundedRectangle(cornerRadius: 2)
                     .fill(barColor)
                     .frame(width: 24, height: barHeight)
                     .shadow(
-                        color: isToday ? Theme.accent.opacity(0.55) : Color.clear,
-                        radius: 4
+                        color: isToday ? Theme.accent.opacity(0.7) : Color.clear,
+                        radius: 6  // 4 → 6：在 393pt 真机上让 halo 真的能看见
                     )
 
-                // 今日柱顶发光脉冲圆点（小 + 贴柱顶 3pt）
+                // 今日柱顶发光脉冲圆点（4pt 基准 → 5.6pt 顶点，贴柱顶 3pt）
                 if isToday {
                     Circle()
                         .fill(Theme.accent)
-                        .frame(width: 3 * pulse, height: 3 * pulse)
-                        .shadow(color: Theme.accent.opacity(0.9), radius: 3)
+                        .frame(width: 4 * pulse, height: 4 * pulse)
+                        .shadow(color: Theme.accent.opacity(0.95), radius: 4)
                         .offset(y: -(barHeight + 3))
                 }
             }
