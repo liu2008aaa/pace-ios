@@ -709,8 +709,9 @@
     </div>
   </div>
 
-  <!-- Bridge to native: when 出发 button clicked, post message to Swift -->
+  <!-- Bridge to native -->
   <script>
+    // 1) 出发按钮 → 原生
     document.addEventListener('DOMContentLoaded', function () {
       const btn = document.querySelector('.start-button');
       if (btn) {
@@ -721,6 +722,23 @@
         });
       }
     });
+
+    // 2) 字体加载就绪 → 原生 fade-in WebView
+    // document.fonts.ready 等所有 @font-face 加载完毕；
+    // 1500ms 超时兜底 — 国内网络下 Google Fonts 可能极慢/被墙，
+    // 此时直接显示, 用 system 字体降级而不是把用户卡在 splash
+    (function () {
+      function notifyReady() {
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.htmlReady) {
+          window.webkit.messageHandlers.htmlReady.postMessage({});
+        }
+      }
+      const fontsReady = (document.fonts && document.fonts.ready)
+        ? document.fonts.ready
+        : Promise.resolve();
+      const timeout = new Promise(function (r) { setTimeout(r, 1500); });
+      Promise.race([fontsReady, timeout]).then(notifyReady);
+    })();
   </script>
 </body>
 </html>

@@ -21,18 +21,61 @@ import SwiftUI
 import WebKit
 
 struct IdleHome: View {
+    @State private var webReady = false
+
     var body: some View {
-        WebShell(
-            file: "idle-home",
-            ext: "html",
-            onStartRun: {
-                UINotificationFeedbackGenerator()
-                    .notificationOccurred(.success)
-                // v0.2.1: NavigationLink push to RunningView
-                print("[IdleHome] start run pressed (web bridge)")
+        ZStack {
+            // 底层全黑 — 与 HTML body 的 #000 一致, 保证 fade-in 时无背景跳变
+            Color.black.ignoresSafeArea()
+
+            // 加载期 splash: 极克制的 PACE. 居中字 + 三点
+            // 等待 WKWebView 完成 navigation + document.fonts.ready (或 1.5s 超时)
+            if !webReady {
+                splashView
+                    .transition(.opacity)
             }
-        )
-        .ignoresSafeArea() // 让 HTML 的 env(safe-area-inset-*) 自己处理留白
+
+            WebShell(
+                file: "idle-home",
+                ext: "html",
+                onStartRun: {
+                    UINotificationFeedbackGenerator()
+                        .notificationOccurred(.success)
+                    // v0.2.1: NavigationLink push to RunningView
+                    print("[IdleHome] start run pressed (web bridge)")
+                },
+                onReady: {
+                    withAnimation(.easeOut(duration: 0.35)) {
+                        webReady = true
+                    }
+                }
+            )
+            .opacity(webReady ? 1 : 0)
+            .ignoresSafeArea() // 让 HTML 的 env(safe-area-inset-*) 自己处理留白
+        }
+    }
+
+    private var splashView: some View {
+        VStack(spacing: 14) {
+            Spacer()
+            HStack(spacing: 0) {
+                Text("PACE")
+                    .font(.system(size: 14, weight: .medium, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.45))
+                    .kerning(3.0)
+                Text(".")
+                    .font(.system(size: 14, weight: .medium, design: .monospaced))
+                    .foregroundColor(Color(red: 0, green: 0.898, blue: 0.659)) // --accent #00E5A8
+            }
+            HStack(spacing: 5) {
+                ForEach(0..<3) { _ in
+                    Circle()
+                        .fill(Color(red: 0, green: 0.898, blue: 0.659).opacity(0.35))
+                        .frame(width: 3, height: 3)
+                }
+            }
+            Spacer()
+        }
     }
 }
 
@@ -48,14 +91,17 @@ struct WebShell: UIViewRepresentable {
     let file: String
     var ext: String = "html"
     var onStartRun: () -> Void = {}
+    /// HTML + 字体加载完成（或超时兜底）触发，给 SwiftUI fade-in 用
+    var onReady: () -> Void = {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onStartRun: onStartRun)
+        Coordinator(onStartRun: onStartRun, onReady: onReady)
     }
 
     func makeUIView(context: Context) -> WKWebView {
         let cfg = WKWebViewConfiguration()
         cfg.userContentController.add(context.coordinator, name: "startRun")
+        cfg.userContentController.add(context.coordinator, name: "htmlReady")
 
         // iOS 14 兼容：preferences.javaScriptEnabled (iOS 14+ 也仍可用，
         // 虽然 iOS 14 引入了新的 WKWebpagePreferences API)
@@ -64,6 +110,7 @@ struct WebShell: UIViewRepresentable {
         cfg.preferences = prefs
 
         let wv = WKWebView(frame: .zero, configuration: cfg)
+        wv.navigationDelegate = context.coordinator
         wv.isOpaque = false
         wv.backgroundColor = .black
         wv.scrollView.backgroundColor = .black
@@ -178,11 +225,14 @@ struct WebShell: UIViewRepresentable {
         // 静态加载, 不需要更新
     }
 
-    final class Coordinator: NSObject, WKScriptMessageHandler {
+    final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         let onStartRun: () -> Void
+        let onReady: () -> Void
+        private var readyFired = false
 
-        init(onStartRun: @escaping () -> Void) {
+        init(onStartRun: @escaping () -> Void, onReady: @escaping () -> Void) {
             self.onStartRun = onStartRun
+            self.onReady = onReady
         }
 
         func userContentController(
@@ -194,8 +244,28 @@ struct WebShell: UIViewRepresentable {
                 DispatchQueue.main.async { [weak self] in
                     self?.onStartRun()
                 }
+            case "htmlReady":
+                fireReadyOnce()
             default:
                 break
+            }
+        }
+
+        // WKNavigationDelegate: HTML 解析完触发
+        // 只是兜底，主路径走 JS 的 document.fonts.ready
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            // 给 fonts.ready 一个机会先发 htmlReady；它若 1.5s 内没发，
+            // 这里 1.8s 后兜底触发 (避免 ready 永远不来导致 splash 卡死)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
+                self?.fireReadyOnce()
+            }
+        }
+
+        private func fireReadyOnce() {
+            guard !readyFired else { return }
+            readyFired = true
+            DispatchQueue.main.async { [weak self] in
+                self?.onReady()
             }
         }
     }
