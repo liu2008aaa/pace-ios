@@ -367,8 +367,9 @@ private struct RouteMapView: View {
                 .fill(Color(hex: 0x008866).opacity(0.4))
         }
         .onAppear {
-            // 4s linear 循环 (HTML <animateMotion dur="4s" repeatCount="indefinite">)
-            withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
+            // 5s linear 循环 (HTML 4s, 加慢 1s 让旧 Mac GPU 喘口气
+            //  视觉差异微乎其微, 真机上看反而"更安静的扫描感")
+            withAnimation(.linear(duration: 5).repeatForever(autoreverses: false)) {
                 cometT = 1
             }
         }
@@ -489,17 +490,31 @@ private struct RouteCometShape: Shape {
     }
 
     func path(in rect: CGRect) -> Path {
-        // path() 里只做查表 + CGFloat 缩放, 不做 bezier 数学
+        // v0.4.0.9: 加线性插值消除离散跳格
+        //
+        // 旧版离散查表 (Int(t * 239)) 在帧率 < 60fps 的设备上视觉跳跃,
+        // 因为相邻 path() 调用 t 间隔变大, 一次跳过多个 lookup 点.
+        //
+        // 新版: t 落在两个 lookup 点之间时, 线性插值得到连续位置.
+        // 任何帧率下都丝滑 (旧 Mac 模拟器 / 真机 / 未来 120Hz ProMotion 通用).
+        //
         let clamped: Double = max(0.0, min(1.0, t))
         let lastIdx: Int = Self.lookup.count - 1
-        let idx: Int = min(lastIdx, Int(clamped * Double(lastIdx)))
-        let raw = Self.lookup[idx]
+        let exact: Double = clamped * Double(lastIdx)
+        let loIdx: Int = max(0, min(lastIdx, Int(exact)))
+        let hiIdx: Int = min(lastIdx, loIdx + 1)
+        let frac: Double = exact - Double(loIdx)
+        let lo = Self.lookup[loIdx]
+        let hi = Self.lookup[hiIdx]
+        let rawX: Double = lo.0 * (1 - frac) + hi.0 * frac
+        let rawY: Double = lo.1 * (1 - frac) + hi.1 * frac
+
         // (Double, Double) → CGPoint 只在这一处转换, 集中统一
         // 显式 CGFloat 类型避免 Swift 5.4 推断歧义
         let scaleX: CGFloat = rect.width / 280
         let scaleY: CGFloat = rect.height / 86
-        let cx: CGFloat = CGFloat(raw.0) * scaleX
-        let cy: CGFloat = CGFloat(raw.1) * scaleY
+        let cx: CGFloat = CGFloat(rawX) * scaleX
+        let cy: CGFloat = CGFloat(rawY) * scaleY
         let r: CGFloat = radius
         let d: CGFloat = r * 2
         return Path(ellipseIn: CGRect(
