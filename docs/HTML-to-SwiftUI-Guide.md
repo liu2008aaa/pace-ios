@@ -121,11 +121,20 @@ WKWebpagePreferences().allowsContentJavaScript = true
 |---|---|
 | `var(--accent)` | `Theme.accent` (项目自定 token) |
 | `rgba(0, 229, 168, 0.4)` | `Theme.accent.opacity(0.4)` |
-| `border: 0.5px solid X` | `.overlay(RoundedRectangle().stroke(X, lineWidth: 0.5))` |
+| `border: 0.5px solid X` | `.overlay(RoundedRectangle().stroke(X, lineWidth: 1))` ⚠️ |
 | `border-radius: 14px` | `.clipShape(RoundedRectangle(cornerRadius: 14))` 或 `RoundedRectangle(cornerRadius: 14).fill(...)` |
 
-⚠️ **0.5pt border 在 iPhone retina 上几乎隐形**——CSS 0.5px 看得见因为屏幕 DPR 渲染策略不同。
-SwiftUI 里 border 至少 **1pt** 才看得清。
+⚠️ **边框两个坑（必看）**：
+
+1. **lineWidth 0.5 在 retina 上几乎隐形** — CSS 0.5px 看得见因为屏幕 DPR 不同。
+   SwiftUI 至少 **1pt** 才看得清。
+2. **opacity 1:1 对齐 HTML 时视觉偏淡** — SwiftUI 1pt 边框 anti-aliasing 比 CSS 0.5px 软 30-50%。
+   **经验值：HTML border opacity × 1.6 = SwiftUI 视觉对齐起点**。
+   - HTML `rgba(0, 229, 168, 0.25)` → SwiftUI `Theme.accent.opacity(0.42)`
+   - HTML `rgba(229, 192, 123, 0.32)` → SwiftUI `Theme.gold.opacity(0.50)`
+
+   背景 tint 同理但程度轻：HTML × 1.5 起步。
+   - HTML `rgba(..., 0.04)` → SwiftUI `.opacity(0.07)`
 
 ### 2.3 阴影 / 光晕
 | CSS | SwiftUI |
@@ -212,6 +221,49 @@ HTML demo 通常按某个固定预览盒画的（如 308×632 或 393×852）。
 ### Safe-area
 - HTML: `padding: env(safe-area-inset-top) X env(safe-area-inset-bottom) X`
 - SwiftUI: 默认就避开 safe area。要全屏背景用 `.ignoresSafeArea()`，但 content VStack 不要 ignore。
+
+### 4.3 经验值: 「三段呼吸」模式 ⭐ 推荐
+
+经过 IdleHome / PreRun / RunningView 三屏实战验证后总结的**屏级布局首选**：
+
+```swift
+VStack(spacing: 0) {
+    topAnchor      // 顶部锚点 (brand strip / header)
+
+    Spacer()       // 段 1: top ↔ hero
+
+    heroSection    // 中段主视觉 (大数字 / countdown 圆 / 主卡)
+
+    Spacer()       // 段 2: hero ↔ list
+
+    listSection    // 列表 / checklist / metrics
+
+    Spacer()       // 段 3: list ↔ bottom
+
+    bottomAnchor   // 底部锚点 (hint / CTA / button)
+}
+```
+
+**3 个无封顶 Spacer**, SwiftUI 自动均分多余高度。212pt 多余 → 每段 ~70pt, 都不算大空洞。
+
+**为什么 work**：
+- iPhone SE (667pt): 3 个 Spacer 各 ~10pt, 几乎不可见, 内容紧贴
+- iPhone 12 Pro (844pt): 3 个 Spacer 各 ~70pt, 视觉舒展但不空
+- iPhone 14 Pro Max (932pt): 各 ~100pt, 仍可接受
+
+**反例（踩过的坑）**：
+
+| 模式 | 问题 |
+|---|---|
+| 单 Spacer 在底 | 底部一处大空洞 200pt |
+| 单 Spacer 在中 | 中部一处大空洞 200pt |
+| 多 Spacer + maxHeight 上限 | 限了上限后剩余还是要找地方放, 反而更乱 |
+| 用 `.frame(height: X)` 固定 gap | 死板, 真机/模拟器看上去都怪 |
+
+**例外情况**：
+- 两屏锚点（如 IdleHome 的 brand+greeting / 出发按钮+timeline）→ 用 4 个 Spacer 对称分布
+- 单屏满内容（无富余空间）→ 不需要 Spacer
+- hero 必须在视觉中心 → 改用 `Spacer + hero + Spacer + (其他全推到底部)`
 
 ---
 

@@ -55,22 +55,23 @@ struct PreRunView: View {
         ZStack {
             Theme.bgApp.ignoresSafeArea()
 
-            // v0.3.4 重排：
-            //   brand 紧贴顶 → 大 Spacer 压下来 → hero (countdown/spinner)
-            //   → 小固定 gap → checklist → 小 Spacer → 底部 (两按钮 OR hint)
+            // v0.3.5 应用「三段呼吸」模式 — 见 docs/HTML-to-SwiftUI-Guide.md §4.3
+            // 旧版「上限封顶 + 一个无限吸收」会让 200+pt 富余高度集中在
+            // 底部成大空洞。改用 3 个无封顶 Spacer, SwiftUI 自动均分,
+            // 每段 ~70pt 都不算大空洞。
             VStack(alignment: .leading, spacing: 0) {
                 brandStrip
 
-                Spacer().frame(maxHeight: 60)   // 顶部弹性 (有上限避免被极端拉伸)
+                Spacer()                       // 段 1: brand ↔ hero
 
                 heroSection
                     .frame(maxWidth: .infinity)
 
-                Spacer().frame(maxHeight: 28)   // hero ↔ checklist
+                Spacer()                       // 段 2: hero ↔ checklist
 
                 checklistSection
 
-                Spacer()                         // 主弹性区, 把底部按钮压贴底
+                Spacer()                       // 段 3: checklist ↔ bottom
 
                 bottomArea
             }
@@ -486,18 +487,22 @@ private struct ChecklistRow: View {
     }
 
     private var rowBackground: Color {
+        // 背景 tint 略提 — HTML 0.04 在 SwiftUI 也偏淡, 0.07 视觉刚好
         switch state {
-        case .ok:        return Theme.accent.opacity(0.04)
-        case .searching: return Theme.gold.opacity(0.05)
-        case .warn:      return Theme.gold.opacity(0.04)
+        case .ok:        return Theme.accent.opacity(0.07)
+        case .searching: return Theme.gold.opacity(0.08)
+        case .warn:      return Theme.gold.opacity(0.07)
         }
     }
 
     private var rowBorder: Color {
+        // v0.3.5: HTML border opacity × 1.6 ≈ SwiftUI 视觉对齐
+        // 详见 docs/HTML-to-SwiftUI-Guide.md §2.7 边框可见度规则
+        // SwiftUI 1pt 边框 retina anti-aliasing 比 CSS 0.5px 软 30-50%
         switch state {
-        case .ok:        return Theme.accent.opacity(0.25)
-        case .searching: return Theme.gold.opacity(0.32)
-        case .warn:      return Theme.gold.opacity(0.28)
+        case .ok:        return Theme.accent.opacity(0.42)   // HTML 0.25 → 0.42
+        case .searching: return Theme.gold.opacity(0.50)     // HTML 0.32 → 0.50
+        case .warn:      return Theme.gold.opacity(0.45)     // HTML 0.28 → 0.45
         }
     }
 }
