@@ -2,270 +2,463 @@
 //  IdleHome.swift
 //  Pace.
 //
-//  v0.2.0 — 架构转型：从纯 SwiftUI 改为 WKWebView 嵌 HTML demo。
+//  Phone 01 · 待机首页
 //
-//  动机：HTML demo 早就所见即所得，而手工逐 padding 翻译成 SwiftUI 太慢
-//  （v0.1.13-17 5 个版本调一个屏，仍有视觉差距）。Phone 01 是纯展示屏，
-//  不需要传感器/后台/触觉这些原生能力，最适合走 WebView 路线。
-//
-//  分工：
-//    - HTML 静态展示屏（首页/总结/分享/月报） → WKWebView 嵌 HTML
-//    - 跑步进行屏（GPS / HKWorkoutSession / Live Activity）→ 原生 SwiftUI
-//
-//  JS ↔ Swift 桥接：HTML 里 .start-button 的 click 事件
-//  通过 window.webkit.messageHandlers.startRun.postMessage 抛给 Swift，
-//  Swift 这边收到后做触觉反馈，并 (v0.2.1) 切换到原生 RunningView。
+//  Swift 5.4 兼容版：把 body 拆分为多个小 sub-view 计算属性，避免单个
+//  ViewBuilder 表达式过于复杂导致类型检查器超时（典型 "Extra argument
+//  in call" 假错）。
 //
 
 import SwiftUI
-import WebKit
 
 struct IdleHome: View {
-    @State private var webReady = false
 
-    var body: some View {
-        ZStack {
-            // 底层全黑 — 与 HTML body 的 #000 一致, 保证 fade-in 时无背景跳变
-            Color.black.ignoresSafeArea()
-
-            // 加载期 splash: 极克制的 PACE. 居中字 + 三点
-            // 等待 WKWebView 完成 navigation + document.fonts.ready (或 1.5s 超时)
-            if !webReady {
-                splashView
-                    .transition(.opacity)
-            }
-
-            WebShell(
-                file: "idle-home",
-                ext: "html",
-                onStartRun: {
-                    UINotificationFeedbackGenerator()
-                        .notificationOccurred(.success)
-                    // v0.2.1: NavigationLink push to RunningView
-                    print("[IdleHome] start run pressed (web bridge)")
-                },
-                onReady: {
-                    withAnimation(.easeOut(duration: 0.35)) {
-                        webReady = true
-                    }
-                }
-            )
-            .opacity(webReady ? 1 : 0)
-            .ignoresSafeArea() // 让 HTML 的 env(safe-area-inset-*) 自己处理留白
+    // MARK: - Time-aware greeting prefix
+    private var greetingPrefix: String {
+        let h = Calendar.current.component(.hour, from: Date())
+        switch h {
+        case 5..<12: return "上午好"
+        case 12..<18: return "下午好"
+        default: return "晚上好"
         }
     }
 
-    private var splashView: some View {
-        VStack(spacing: 14) {
-            Spacer()
-            HStack(spacing: 0) {
-                Text("PACE")
-                    .font(.system(size: 14, weight: .medium, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.45))
-                    .kerning(3.0)
-                Text(".")
-                    .font(.system(size: 14, weight: .medium, design: .monospaced))
-                    .foregroundColor(Color(red: 0, green: 0.898, blue: 0.659)) // --accent #00E5A8
-            }
-            HStack(spacing: 5) {
-                ForEach(0..<3) { _ in
-                    Circle()
-                        .fill(Color(red: 0, green: 0.898, blue: 0.659).opacity(0.35))
-                        .frame(width: 3, height: 3)
+    // MARK: - Body (small, simple)
+    //
+    // 注意：SwiftUI 的 @ViewBuilder 在 iOS 14 / Swift 5.4 上每个容器
+    // 最多支持 10 个直接子 view（buildBlock 重载到 10 参数为止）。
+    // 超过 10 个会报 "Extra argument in call"。这里用 Group { } 把
+    // 相关的合并成 1 个子元素，让 VStack 直接子元素 ≤ 10。
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Theme.bgApp.ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 0) {
+                // 顶部 7 个 → 合并为 1 个 Group 子元素 (≤ 10, 安全)
+                Group {
+                    brandStrip
+                    greetingSection
+                    hairlineDivider
+                    metricsHeader
+                    triadSection
+                    aiSuggestion
+                    weeklyRhythmSection
                 }
+
+                Spacer()
+
+                StartButton {
+                    UINotificationFeedbackGenerator()
+                        .notificationOccurred(.success)
+                    // v0.2: navigate to /pre-run
+                }
+
+                // 底部仅剩 14 天点阵带（含彗星扫描动画）。
+                // "上次" 一行已并入 WeeklyRhythmCard 的语义，故移除。
+                timelineSection
             }
-            Spacer()
+            .frame(maxHeight: .infinity)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
         }
+    }
+
+    // MARK: - Brand strip (PACE. + Coach chip)
+    private var brandStrip: some View {
+        HStack {
+            brandLogo
+
+            Spacer()
+
+            coachChip
+        }
+        .padding(.horizontal, 4)
+        .padding(.top, 12)
+    }
+
+    // MARK: - Coach chip (top-right)
+    private var coachChip: some View {
+        HStack(spacing: 5) {
+            Text("✦")
+                .font(.system(size: 12))
+                .foregroundColor(Theme.accent)
+            Text("教练")
+                .font(PaceFont.cn(size: 11))
+                .foregroundColor(Theme.accent)
+                .kerning(0.5)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(Theme.accent.opacity(0.08))
+        .overlay(
+            RoundedRectangle(cornerRadius: 999)
+                .stroke(Theme.accent.opacity(0.3), lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 999))
+        .onTapGesture {
+            UISelectionFeedbackGenerator().selectionChanged()
+        }
+    }
+
+    // MARK: - Greeting section (上午好 + weather)
+    private var greetingSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("\(greetingPrefix),\(MockData.User.displayName)")
+                .font(.system(size: 19, weight: .medium))
+                .foregroundColor(Theme.text1)
+                .kerning(0.76)
+
+            weatherRow
+        }
+        .padding(.top, 22)
+    }
+
+    // MARK: - Weather row
+    private var weatherRow: some View {
+        HStack(spacing: 6) {
+            Text(MockData.Weather.city)
+                .font(PaceFont.cn(size: 9.5))
+                .foregroundColor(Theme.text2)
+                .kerning(1.5)
+            Text("·")
+                .font(PaceFont.cn(size: 9.5))
+                .foregroundColor(Theme.text4)
+            Text(MockData.Weather.condition)
+                .font(PaceFont.cn(size: 9.5))
+                .foregroundColor(Theme.text2)
+                .kerning(1.5)
+            Text("·")
+                .font(PaceFont.cn(size: 9.5))
+                .foregroundColor(Theme.text4)
+            Text("\(MockData.Weather.tempC)°C")
+                .font(PaceFont.mono(size: 9.5))
+                .foregroundColor(Theme.text2)
+            Text("·")
+                .font(PaceFont.cn(size: 9.5))
+                .foregroundColor(Theme.text4)
+            Text(MockData.Weather.wind)
+                .font(PaceFont.cn(size: 9.5))
+                .foregroundColor(Theme.text2)
+                .kerning(1.5)
+            Text("·")
+                .font(PaceFont.cn(size: 9.5))
+                .foregroundColor(Theme.text4)
+            Text(MockData.Weather.suitability)
+                .font(PaceFont.cn(size: 9.5))
+                .foregroundColor(Theme.accent)
+                .kerning(1.5)
+        }
+    }
+
+    // MARK: - Hairline divider
+    private var hairlineDivider: some View {
+        Hairline()
+            .padding(.top, 16)
+    }
+
+    // MARK: - Metrics header
+    private var metricsHeader: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("今日体感")
+                .font(PaceFont.cn(size: 10))
+                .foregroundColor(Theme.text3)
+                .kerning(3.6)
+            Spacer()
+            Text("DAILY METRICS")
+                .font(PaceFont.mono(size: 8))
+                .foregroundColor(Theme.text4)
+                .kerning(1.76)
+        }
+        .padding(.top, 12)
+        .padding(.bottom, 10)
+    }
+
+    // MARK: - Triad of dials
+    private var triadSection: some View {
+        HStack(spacing: 7) {
+            DialCard(
+                cornerMark: "01",
+                value: "\(MockData.Today.readiness)",
+                unit: "/100",
+                label: "状态",
+                meta: "↑ \(MockData.Today.readinessDelta) vs 昨",
+                percent: Double(MockData.Today.readiness),
+                state: .good
+            )
+            DialCard(
+                cornerMark: "02",
+                value: String(format: "%.1f", MockData.Today.strain),
+                unit: "/21",
+                label: "负荷",
+                meta: MockData.Today.strainStatus,
+                percent: MockData.Today.strain / 21 * 100,
+                state: .warn
+            )
+            DialCard(
+                cornerMark: "03",
+                value: "\(MockData.Today.sleepPercent)%",
+                unit: MockData.Today.sleepHours,
+                label: "睡眠",
+                meta: "↑ \(MockData.Today.sleepDelta)%",
+                percent: Double(MockData.Today.sleepPercent),
+                state: .good
+            )
+        }
+        .frame(minHeight: 138)
+    }
+
+    // MARK: - AI 一句话建议
+    private var aiSuggestion: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text("✦")
+                .font(.system(size: 11))
+                .foregroundColor(Theme.accent)
+
+            aiText
+                .font(PaceFont.cn(size: 11))
+                .foregroundColor(Theme.text2)
+                .lineSpacing(3)
+        }
+        .padding(.top, 18)
+    }
+
+    // MARK: - 本周节奏卡（7 日柱图 + 今日发光圆点 + 连跑 chip）
+    private var weeklyRhythmSection: some View {
+        WeeklyRhythmCard()
+            .padding(.top, 24)
+    }
+
+    // MARK: - 14-day timeline
+    private var timelineSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("最近 14 天")
+                    .font(PaceFont.cn(size: 8.5))
+                    .foregroundColor(Theme.text4)
+                    .kerning(1.53)
+                Spacer()
+                Text("今天")
+                    .font(PaceFont.mono(size: 8.5))
+                    .foregroundColor(Theme.accent)
+                    .kerning(2.13)
+            }
+            TimelineDots(intensities: MockData.timeline)
+        }
+        .padding(.top, 16)
+    }
+
+    // MARK: - PACE. brand wordmark (Text + Text in computed property)
+    private var brandLogo: Text {
+        Text("PACE")
+            .font(PaceFont.mono(size: 9.5, weight: .medium))
+            .foregroundColor(Theme.text3)
+            .kerning(1.7) +
+        Text(".")
+            .font(PaceFont.mono(size: 9.5, weight: .medium))
+            .foregroundColor(Theme.accent)
+    }
+
+    // MARK: - AI 文案带高亮（"负荷偏高" 显示金色）
+    private var aiText: Text {
+        let raw = MockData.Today.aiSuggestion
+        let highlight = MockData.Today.aiHighlight
+
+        guard let range = raw.range(of: highlight) else {
+            return Text(raw)
+        }
+        let before = String(raw[..<range.lowerBound])
+        let mid = String(raw[range])
+        let after = String(raw[range.upperBound...])
+
+        return Text(before)
+            + Text(mid).foregroundColor(Theme.gold).fontWeight(.semibold)
+            + Text(after)
     }
 }
 
-// MARK: - WebShell · UIViewRepresentable 包装 WKWebView
+// MARK: - 本周节奏卡 (内联到此文件以避免 Xcode 12 的 "Add Files to Project" 摩擦)
 //
-// 单参约定：file 是 bundle 里的 .html 文件名（不带扩展），ext 默认 "html"。
-// onStartRun 是 JS 桥触发回调。
+// 设计点：
+// - 7 日柱图替代旧的"本周进度"线条（解决用户"天天画圆"重复感）
+// - 休息日（km == 0）显示极矮平条 + 字号变灰
+// - 今日柱顶点带发光脉冲圆点 + 自身有 accent 阴影发光
+// - 顶部连跑 chip 用 gold 色，断了以后切金/灰由调用方判断
 //
-// 加载策略：loadFileURL(_:allowingReadAccessTo:) — 允许 HTML 通过相对路径
-// 引用同目录其它资源（未来若拆出独立 .css/.js 时不用改）。
-//
-struct WebShell: UIViewRepresentable {
-    let file: String
-    var ext: String = "html"
-    var onStartRun: () -> Void = {}
-    /// HTML + 字体加载完成（或超时兜底）触发，给 SwiftUI fade-in 用
-    var onReady: () -> Void = {}
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onStartRun: onStartRun, onReady: onReady)
+private struct WeeklyRhythmCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            wrcHeader
+            wrcBars
+            wrcFooter
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 18)
+        .background(Theme.bgCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Theme.hairline, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
-    func makeUIView(context: Context) -> WKWebView {
-        let cfg = WKWebViewConfiguration()
-        cfg.userContentController.add(context.coordinator, name: "startRun")
-        cfg.userContentController.add(context.coordinator, name: "htmlReady")
-
-        // iOS 14 兼容：preferences.javaScriptEnabled (iOS 14+ 也仍可用，
-        // 虽然 iOS 14 引入了新的 WKWebpagePreferences API)
-        let prefs = WKPreferences()
-        prefs.javaScriptEnabled = true
-        cfg.preferences = prefs
-
-        let wv = WKWebView(frame: .zero, configuration: cfg)
-        wv.navigationDelegate = context.coordinator
-        wv.isOpaque = false
-        wv.backgroundColor = .black
-        wv.scrollView.backgroundColor = .black
-        wv.scrollView.bounces = false               // 关掉橡皮筋, 不像页面像 app
-        wv.scrollView.showsVerticalScrollIndicator = false
-        wv.scrollView.showsHorizontalScrollIndicator = false
-
-        // 多策略查找：先扁平 (forResource 默认递归)，再显式带 subdirectory，再扫整个 bundle
-        let url = Self.locateResource(file: file, ext: ext)
-        if let url = url {
-            wv.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
-        } else {
-            wv.loadHTMLString(Self.diagnosticPage(file: file, ext: ext), baseURL: nil)
+    // 顶栏只放 title，不挂 chip — chip 已下沉到 footer 右
+    private var wrcHeader: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text("本周节奏")
+                .font(PaceFont.cn(size: 10))
+                .foregroundColor(Theme.text3)
+                .kerning(2.4)
+            Text("RHYTHM")
+                .font(PaceFont.mono(size: 8))
+                .foregroundColor(Theme.text4)
+                .kerning(1.7)
+            Spacer()
         }
-        return wv
     }
 
-    /// 三步查找资源
-    private static func locateResource(file: String, ext: String) -> URL? {
-        // 策略 1：默认查找（forResource:withExtension: 已会递归到 subdirectory）
-        if let u = Bundle.main.url(forResource: file, withExtension: ext) {
-            return u
-        }
-        // 策略 2：显式 WebContent 子目录（folder reference 时路径保留）
-        if let u = Bundle.main.url(forResource: file, withExtension: ext, subdirectory: "WebContent") {
-            return u
-        }
-        // 策略 3：bundle 里全盘扫描，按文件名匹配（兜底，应对 group 引用打平的情况）
-        let resURL = Bundle.main.resourceURL ?? Bundle.main.bundleURL
-        let target = "\(file).\(ext)"
-        if let enumerator = FileManager.default.enumerator(
-            at: resURL,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        ) {
-            for case let candidate as URL in enumerator where candidate.lastPathComponent == target {
-                return candidate
+    private var wrcBars: some View {
+        HStack(alignment: .bottom, spacing: 0) {
+            ForEach(0..<7) { i in
+                BarColumn(
+                    km: MockData.WeekRhythm.dayKm[i],
+                    label: MockData.WeekRhythm.dayLabels[i],
+                    isToday: i == MockData.WeekRhythm.todayIndex
+                )
+                .frame(maxWidth: .infinity)
             }
         }
-        return nil
     }
 
-    /// 资源没找到时的诊断页 — 列 bundle 实际内容，便于一眼看出是
-    /// Xcode 没把文件 copy 进 bundle，还是 copy 进了但路径不对
-    private static func diagnosticPage(file: String, ext: String) -> String {
-        let bundlePath = Bundle.main.bundlePath
-        let resURL = Bundle.main.resourceURL ?? Bundle.main.bundleURL
+    // 底栏：左 "本周 26.0 km"，右 ↗ 12 天 chip
+    private var wrcFooter: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text("本周")
+                .font(PaceFont.cn(size: 9))
+                .foregroundColor(Theme.text3)
+                .kerning(1.0)
+            Text(MockData.WeekRhythm.totalKm)
+                .font(PaceFont.mono(size: 17, weight: .semibold))
+                .foregroundColor(Theme.text1)
+            Text("km")
+                .font(PaceFont.mono(size: 10))
+                .foregroundColor(Theme.text3)
+                .kerning(0.4)
+            Spacer()
+            wrcStreakChip
+        }
+    }
 
-        var htmlFiles: [String] = []
-        var allTopLevel: [String] = []
+    private var wrcStreakChip: some View {
+        HStack(spacing: 3) {
+            Text("↗")
+                .font(.system(size: 9))
+                .foregroundColor(Theme.accent)
+            Text("\(MockData.WeekRhythm.streakDays)")
+                .font(PaceFont.mono(size: 9, weight: .medium))
+                .foregroundColor(Theme.accent)
+            Text("天")
+                .font(PaceFont.cn(size: 9))
+                .foregroundColor(Theme.accent)
+                .kerning(0.4)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 2)
+        .background(Theme.accent.opacity(0.08))
+        .overlay(
+            RoundedRectangle(cornerRadius: 999)
+                .stroke(Theme.accent.opacity(0.28), lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 999))
+    }
+}
 
-        if let enumerator = FileManager.default.enumerator(
-            at: resURL,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        ) {
-            for case let url as URL in enumerator {
-                let rel = url.path.replacingOccurrences(of: bundlePath + "/", with: "")
-                if url.pathExtension == "html" {
-                    htmlFiles.append(rel)
+// MARK: - 单根柱 + 日字标签 + (今日)发光脉冲圆点
+//
+// HTML 源参照（index.html#L4908-L4928）：
+// - viewBox 280×76, baseline y=64, 柱宽 28pt 占列 28/40 = 70%
+// - 静息柱: rgba(255,255,255,0.08) 白雾, height=6
+// - 活跃柱: accent 0.5-0.65
+// - 今日柱: #29F0BD + drop-shadow(0 0 4px ...)
+// - 脉冲点: r=2.5 → 3.5 → 2.5 over 2.4s, 贴柱顶上方 4pt
+//
+private struct BarColumn: View {
+    let km: Double
+    let label: String
+    let isToday: Bool
+
+    /// 一周柱图基准最大 km（决定柱高映射）
+    private static let maxKm: Double = 6.5
+    /// 柱区域高度（不含底部文字）— 真机 393pt 比 HTML 308pt 宽，要相应抬高
+    private static let barAreaHeight: CGFloat = 64
+
+    @State private var pulse: CGFloat = 1.0
+
+    private var isRest: Bool { km == 0 }
+
+    private var barHeight: CGFloat {
+        if isRest { return 6 }
+        let ratio = min(1.0, km / BarColumn.maxKm)
+        // 12 + 50 = 62pt 顶, 占柱区 ~97%；最矮活跃柱 ~12pt 也清晰可见
+        return CGFloat(12.0 + ratio * 50.0)
+    }
+
+    private var barColor: Color {
+        if isRest { return Color.white.opacity(0.08) }
+        if isToday { return Theme.accentBright }
+        // 0.55 → 0.42：拉大与今日柱（1.0 + glow）的明度差，让今日真正"立"起来
+        return Theme.accent.opacity(0.42)
+    }
+
+    private var labelColor: Color {
+        if isToday { return Theme.accent }
+        if isRest { return Theme.text4.opacity(0.6) }
+        return Theme.text3
+    }
+
+    var body: some View {
+        VStack(spacing: 5) {
+            ZStack(alignment: .bottom) {
+                // 占满整个柱区域 — ZStack(alignment:.bottom) 让其它子项自然底对齐
+                Color.clear
+                    .frame(height: BarColumn.barAreaHeight)
+
+                // 基准线（HTML index.html#L4910 的 rgba(255,255,255,0.06)）
+                // 每列独立画一段 0.5pt 横线，相邻列首尾相接拼成完整地面线
+                Rectangle()
+                    .fill(Color.white.opacity(0.06))
+                    .frame(height: 0.5)
+
+                // 柱体（24pt 定宽，约占列宽 50% — 接近 HTML 28/40 比例）
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(barColor)
+                    .frame(width: 24, height: barHeight)
+                    .shadow(
+                        color: isToday ? Theme.accent.opacity(0.7) : Color.clear,
+                        radius: 6  // 4 → 6：在 393pt 真机上让 halo 真的能看见
+                    )
+
+                // 今日柱顶发光脉冲圆点（4pt 基准 → 5.6pt 顶点，贴柱顶 3pt）
+                if isToday {
+                    Circle()
+                        .fill(Theme.accent)
+                        .frame(width: 4 * pulse, height: 4 * pulse)
+                        .shadow(color: Theme.accent.opacity(0.95), radius: 4)
+                        .offset(y: -(barHeight + 3))
                 }
             }
+
+            Text(label)
+                .font(PaceFont.cn(size: 8.5, weight: isToday ? .medium : .regular))
+                .foregroundColor(labelColor)
+                .kerning(0.4)
         }
-
-        if let contents = try? FileManager.default.contentsOfDirectory(atPath: resURL.path) {
-            allTopLevel = contents.sorted()
-        }
-
-        let htmlSection: String
-        if htmlFiles.isEmpty {
-            htmlSection = """
-            <p style='color:#FF6B3D'>❌ Bundle 里完全没有 .html 文件。</p>
-            <p>这说明 Xcode 根本没把 WebContent 文件夹 copy 进打包产物。</p>
-            <p><b>修复</b>：选中 Pace target → Build Phases →
-               展开 <b>Copy Bundle Resources</b> →
-               检查里面是否有 WebContent 文件夹引用（蓝色）。
-               如果没有，点左下 + 加进去。</p>
-            <p>或者：删除 navigator 里的 WebContent → 重新 Add Files →
-               这次确保 dialog 里 <b>Targets ▸ Pace</b> 勾上了，
-               并且选了 <b>Create folder references</b>（不是 Create groups）。</p>
-            """
-        } else {
-            let listed = htmlFiles.map { "<li><code>\($0)</code></li>" }.joined()
-            htmlSection = """
-            <p style='color:#29F0BD'>✅ Bundle 里有 .html 文件：</p>
-            <ul>\(listed)</ul>
-            <p>但 <code>locateResource("\(file)", "\(ext)")</code> 没找到。
-               说明 Swift 查找逻辑漏了某条路径，请把这页截图发我修。</p>
-            """
-        }
-
-        let topLevel = allTopLevel.prefix(40).map { "<li>\($0)</li>" }.joined()
-
-        return """
-        <html><body style='background:#000;color:#fff;font-family:-apple-system,sans-serif;
-        padding:24px;line-height:1.55;font-size:14px'>
-        <h2 style='color:#FF6B3D;margin-top:0'>WebShell · 资源未找到</h2>
-        <p>查找目标：<code>\(file).\(ext)</code></p>
-        <hr style='border-color:#222'>
-        \(htmlSection)
-        <hr style='border-color:#222'>
-        <details>
-          <summary style='color:#9CA0AB;cursor:pointer'>Bundle 顶层内容（前 40 项）</summary>
-          <ul style='color:#9CA0AB;font-size:11px'>\(topLevel)</ul>
-          <p style='color:#5A5E68;font-size:10px'>路径：<br>\(bundlePath)</p>
-        </details>
-        </body></html>
-        """
-    }
-
-    func updateUIView(_ uiView: WKWebView, context: Context) {
-        // 静态加载, 不需要更新
-    }
-
-    final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
-        let onStartRun: () -> Void
-        let onReady: () -> Void
-        private var readyFired = false
-
-        init(onStartRun: @escaping () -> Void, onReady: @escaping () -> Void) {
-            self.onStartRun = onStartRun
-            self.onReady = onReady
-        }
-
-        func userContentController(
-            _ userContentController: WKUserContentController,
-            didReceive message: WKScriptMessage
-        ) {
-            switch message.name {
-            case "startRun":
-                DispatchQueue.main.async { [weak self] in
-                    self?.onStartRun()
+        .onAppear {
+            if isToday {
+                withAnimation(
+                    Animation.easeInOut(duration: 1.2).repeatForever(autoreverses: true)
+                ) {
+                    pulse = 1.4
                 }
-            case "htmlReady":
-                fireReadyOnce()
-            default:
-                break
-            }
-        }
-
-        // WKNavigationDelegate: HTML 解析完触发
-        // 只是兜底，主路径走 JS 的 document.fonts.ready
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            // 给 fonts.ready 一个机会先发 htmlReady；它若 1.5s 内没发，
-            // 这里 1.8s 后兜底触发 (避免 ready 永远不来导致 splash 卡死)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) { [weak self] in
-                self?.fireReadyOnce()
-            }
-        }
-
-        private func fireReadyOnce() {
-            guard !readyFired else { return }
-            readyFired = true
-            DispatchQueue.main.async { [weak self] in
-                self?.onReady()
             }
         }
     }
