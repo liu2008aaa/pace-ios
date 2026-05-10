@@ -612,7 +612,8 @@ private struct PaceChartView: View {
                 }
                 .stroke(Color.white.opacity(0.06), style: StrokeStyle(lineWidth: 0.5, dash: [2, 4]))
 
-                // 区域填充 (path 闭合到 baseline)
+                // 区域填充 (path 闭合到 baseline) — 顶部 0.55 → 底部 0.0 渐变
+                // (v0.4.0.8: 0.45 → 0.55 让填充更明显, 给"地面"投射感)
                 Path { p in
                     p.move(to: CGPoint(x: xs[0] * scaleX, y: splitsY[0] * scaleY))
                     for i in 1..<5 {
@@ -625,7 +626,8 @@ private struct PaceChartView: View {
                 .fill(
                     LinearGradient(
                         gradient: Gradient(colors: [
-                            Theme.accent.opacity(0.45),
+                            Theme.accent.opacity(0.55),
+                            Theme.accent.opacity(0.10),
                             Theme.accent.opacity(0.0),
                         ]),
                         startPoint: .top,
@@ -633,7 +635,31 @@ private struct PaceChartView: View {
                     )
                 )
 
-                // 折线
+                // 地面 glow 反射 — baseline 处一条柔光带, 给图表落地感
+                // (v0.4.0.8 新增, 用户要求"加点阴影投射")
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Theme.accent.opacity(0),
+                        Theme.accent.opacity(0.25),
+                        Theme.accent.opacity(0),
+                    ]),
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(height: 14)
+                .blur(radius: 4)
+                .position(x: geo.size.width / 2, y: 60 * scaleY + 2)
+
+                // 折线 — 双层: 底层模糊宽线作 glow + 顶层细实线
+                Path { p in
+                    p.move(to: CGPoint(x: xs[0] * scaleX, y: splitsY[0] * scaleY))
+                    for i in 1..<5 {
+                        p.addLine(to: CGPoint(x: xs[i] * scaleX, y: splitsY[i] * scaleY))
+                    }
+                }
+                .stroke(Theme.accent.opacity(0.5), style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+                .blur(radius: 4)
+
                 Path { p in
                     p.move(to: CGPoint(x: xs[0] * scaleX, y: splitsY[0] * scaleY))
                     for i in 1..<5 {
@@ -641,6 +667,7 @@ private struct PaceChartView: View {
                     }
                 }
                 .stroke(Theme.accent, style: StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
+                .shadow(color: Theme.accent.opacity(0.6), radius: 6, y: 3)
 
                 // 4 个普通节点 (空心 dot)
                 ForEach(0..<4) { i in
