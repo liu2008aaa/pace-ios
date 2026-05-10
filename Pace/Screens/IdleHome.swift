@@ -24,8 +24,7 @@ struct IdleHome: View {
     }
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
 
                 // MARK: Brand strip
                 HStack {
@@ -166,8 +165,8 @@ struct IdleHome: View {
                 }
                 .padding(.top, 12)
 
-                // MARK: Spacer
-                Spacer(minLength: 32)
+                // MARK: 上限 80pt 的弹性间距 (避免在大屏上顶到中间形成大空洞)
+                Spacer().frame(maxHeight: 80)
 
                 // MARK: 出发按钮
                 StartButton {
@@ -207,11 +206,13 @@ struct IdleHome: View {
                     TimelineDots(intensities: MockData.timeline)
                 }
                 .padding(.top, 16)
-                .padding(.bottom, 8)
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
+
+                // MARK: 底部兜底弹性间距 (吸收剩余空间，避免 timeline 太靠近底)
+                Spacer(minLength: 0)
         }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Theme.bgApp.ignoresSafeArea())
     }
 
