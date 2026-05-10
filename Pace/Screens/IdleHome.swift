@@ -286,10 +286,10 @@ struct IdleHome: View {
 //
 private struct WeeklyRhythmCard: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             wrcHeader
-            wrcMainStats
             wrcBars
+            wrcFooter
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
@@ -301,61 +301,18 @@ private struct WeeklyRhythmCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
+    // 顶栏只放 title，不挂 chip — chip 已下沉到 footer 右
     private var wrcHeader: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text("本周节奏")
                 .font(PaceFont.cn(size: 10))
                 .foregroundColor(Theme.text3)
                 .kerning(2.4)
-            Text("WEEKLY RHYTHM")
+            Text("RHYTHM")
                 .font(PaceFont.mono(size: 8))
                 .foregroundColor(Theme.text4)
                 .kerning(1.7)
             Spacer()
-            wrcStreakChip
-        }
-    }
-
-    private var wrcStreakChip: some View {
-        HStack(spacing: 3) {
-            Text("✦")
-                .font(.system(size: 9))
-                .foregroundColor(Theme.gold)
-            Text("\(MockData.WeekRhythm.streakDays) 天连跑")
-                .font(PaceFont.cn(size: 9))
-                .foregroundColor(Theme.gold)
-                .kerning(0.6)
-        }
-        .padding(.horizontal, 7)
-        .padding(.vertical, 2.5)
-        .background(Theme.gold.opacity(0.08))
-        .overlay(
-            RoundedRectangle(cornerRadius: 999)
-                .stroke(Theme.gold.opacity(0.28), lineWidth: 0.5)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 999))
-    }
-
-    private var wrcMainStats: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(MockData.WeekRhythm.totalKm)
-                .font(PaceFont.mono(size: 28, weight: .semibold))
-                .foregroundColor(Theme.text1)
-            Text("km")
-                .font(PaceFont.mono(size: 11))
-                .foregroundColor(Theme.text3)
-                .kerning(0.4)
-            Spacer()
-            Text("\(MockData.WeekRhythm.runs) 次")
-                .font(PaceFont.cn(size: 10))
-                .foregroundColor(Theme.text2)
-                .kerning(0.5)
-            Text("·")
-                .font(PaceFont.cn(size: 10))
-                .foregroundColor(Theme.text4)
-            Text("均速 \(MockData.WeekRhythm.avgPace)")
-                .font(PaceFont.mono(size: 10))
-                .foregroundColor(Theme.text2)
         }
     }
 
@@ -370,11 +327,61 @@ private struct WeeklyRhythmCard: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .frame(height: 64)
+        .frame(height: 62)
+    }
+
+    // 底栏：左 "本周 26.0 km"，右 ↗ 12 天 chip
+    private var wrcFooter: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text("本周")
+                .font(PaceFont.cn(size: 9))
+                .foregroundColor(Theme.text3)
+                .kerning(1.0)
+            Text(MockData.WeekRhythm.totalKm)
+                .font(PaceFont.mono(size: 17, weight: .semibold))
+                .foregroundColor(Theme.text1)
+            Text("km")
+                .font(PaceFont.mono(size: 10))
+                .foregroundColor(Theme.text3)
+                .kerning(0.4)
+            Spacer()
+            wrcStreakChip
+        }
+    }
+
+    private var wrcStreakChip: some View {
+        HStack(spacing: 3) {
+            Text("↗")
+                .font(.system(size: 9))
+                .foregroundColor(Theme.accent)
+            Text("\(MockData.WeekRhythm.streakDays)")
+                .font(PaceFont.mono(size: 9, weight: .medium))
+                .foregroundColor(Theme.accent)
+            Text("天")
+                .font(PaceFont.cn(size: 9))
+                .foregroundColor(Theme.accent)
+                .kerning(0.4)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 2)
+        .background(Theme.accent.opacity(0.08))
+        .overlay(
+            RoundedRectangle(cornerRadius: 999)
+                .stroke(Theme.accent.opacity(0.28), lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 999))
     }
 }
 
 // MARK: - 单根柱 + 日字标签 + (今日)发光脉冲圆点
+//
+// HTML 源参照（index.html#L4908-L4928）：
+// - viewBox 280×76, baseline y=64, 柱宽 28pt 占列 28/40 = 70%
+// - 静息柱: rgba(255,255,255,0.08) 白雾, height=6
+// - 活跃柱: accent 0.5-0.65
+// - 今日柱: #29F0BD + drop-shadow(0 0 4px ...)
+// - 脉冲点: r=2.5 → 3.5 → 2.5 over 2.4s, 贴柱顶上方 4pt
+//
 private struct BarColumn: View {
     let km: Double
     let label: String
@@ -383,60 +390,60 @@ private struct BarColumn: View {
     /// 一周柱图基准最大 km（决定柱高映射）
     private static let maxKm: Double = 6.5
     /// 柱区域高度（不含底部文字）
-    private static let barAreaHeight: CGFloat = 50
+    private static let barAreaHeight: CGFloat = 48
 
     @State private var pulse: CGFloat = 1.0
 
     private var isRest: Bool { km == 0 }
 
     private var barHeight: CGFloat {
-        if isRest { return 4 }
+        if isRest { return 6 }
         let ratio = min(1.0, km / BarColumn.maxKm)
-        return CGFloat(6.0 + ratio * 40.0)
+        return CGFloat(10.0 + ratio * 36.0)
     }
 
     private var barColor: Color {
-        if isRest { return Theme.text4.opacity(0.5) }
+        if isRest { return Color.white.opacity(0.08) }
         if isToday { return Theme.accentBright }
-        return Theme.accent.opacity(0.65)
+        return Theme.accent.opacity(0.55)
     }
 
     private var labelColor: Color {
         if isToday { return Theme.accent }
-        if isRest { return Theme.text4 }
+        if isRest { return Theme.text4.opacity(0.6) }
         return Theme.text3
     }
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 5) {
             ZStack(alignment: .bottom) {
-                // 占满整个柱区域，便于底部对齐
+                // 占满整个柱区域 — ZStack(alignment:.bottom) 让其它子项自然底对齐
                 Color.clear
                     .frame(height: BarColumn.barAreaHeight)
 
-                // 柱体
+                // 柱体（24pt 定宽，约占列宽 50% — 接近 HTML 28/40 比例）
                 RoundedRectangle(cornerRadius: 2)
                     .fill(barColor)
-                    .frame(width: 6, height: barHeight)
+                    .frame(width: 24, height: barHeight)
                     .shadow(
-                        color: isToday ? Theme.accent.opacity(0.7) : Color.clear,
+                        color: isToday ? Theme.accent.opacity(0.55) : Color.clear,
                         radius: 4
                     )
 
-                // 今日柱顶发光脉冲圆点
+                // 今日柱顶发光脉冲圆点（小 + 贴柱顶 3pt）
                 if isToday {
                     Circle()
                         .fill(Theme.accent)
-                        .frame(width: 6 * pulse, height: 6 * pulse)
-                        .shadow(color: Theme.accent.opacity(0.9), radius: 4)
-                        .offset(y: -(barHeight + 4))
+                        .frame(width: 3 * pulse, height: 3 * pulse)
+                        .shadow(color: Theme.accent.opacity(0.9), radius: 3)
+                        .offset(y: -(barHeight + 3))
                 }
             }
 
             Text(label)
-                .font(PaceFont.cn(size: 9))
+                .font(PaceFont.cn(size: 8.5, weight: isToday ? .medium : .regular))
                 .foregroundColor(labelColor)
-                .kerning(0.5)
+                .kerning(0.4)
         }
         .onAppear {
             if isToday {

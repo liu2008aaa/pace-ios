@@ -23,7 +23,7 @@ enum MockData {
         static let sleepPercent = 87
         static let sleepHours = "7h 24m"
         static let sleepDelta = 4
-        static let aiSuggestion = "恢复良好但负荷偏高，建议做轻松跑而非节奏跑。"
+        static let aiSuggestion = "恢复良好但负荷偏高，建议轻松跑。"
         static let aiHighlight = "负荷偏高"
     }
 
