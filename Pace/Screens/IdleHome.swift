@@ -73,7 +73,7 @@ struct IdleHome: View {
             coachChip
         }
         .padding(.horizontal, 4)
-        .padding(.top, 6)
+        .padding(.top, 12)
     }
 
     // MARK: - Coach chip (top-right)
@@ -102,7 +102,7 @@ struct IdleHome: View {
 
     // MARK: - Greeting section (上午好 + weather)
     private var greetingSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("\(greetingPrefix),\(MockData.User.displayName)")
                 .font(.system(size: 19, weight: .medium))
                 .foregroundColor(Theme.text1)
@@ -110,7 +110,7 @@ struct IdleHome: View {
 
             weatherRow
         }
-        .padding(.top, 12)
+        .padding(.top, 22)
     }
 
     // MARK: - Weather row
@@ -153,7 +153,7 @@ struct IdleHome: View {
     // MARK: - Hairline divider
     private var hairlineDivider: some View {
         Hairline()
-            .padding(.top, 16)
+            .padding(.top, 26)
     }
 
     // MARK: - Metrics header
@@ -169,8 +169,8 @@ struct IdleHome: View {
                 .foregroundColor(Theme.text4)
                 .kerning(1.76)
         }
-        .padding(.top, 16)
-        .padding(.bottom, 8)
+        .padding(.top, 22)
+        .padding(.bottom, 12)
     }
 
     // MARK: - Triad of dials
@@ -219,13 +219,13 @@ struct IdleHome: View {
                 .foregroundColor(Theme.text2)
                 .lineSpacing(3)
         }
-        .padding(.top, 12)
+        .padding(.top, 18)
     }
 
     // MARK: - 本周节奏卡（7 日柱图 + 今日发光圆点 + 连跑 chip）
     private var weeklyRhythmSection: some View {
         WeeklyRhythmCard()
-            .padding(.top, 16)
+            .padding(.top, 24)
     }
 
     // MARK: - 14-day timeline
@@ -286,13 +286,13 @@ struct IdleHome: View {
 //
 private struct WeeklyRhythmCard: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 14) {
             wrcHeader
             wrcBars
             wrcFooter
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 18)
         .background(Theme.bgCard)
         .overlay(
             RoundedRectangle(cornerRadius: 14)
@@ -388,8 +388,8 @@ private struct BarColumn: View {
 
     /// 一周柱图基准最大 km（决定柱高映射）
     private static let maxKm: Double = 6.5
-    /// 柱区域高度（不含底部文字）
-    private static let barAreaHeight: CGFloat = 48
+    /// 柱区域高度（不含底部文字）— 真机 393pt 比 HTML 308pt 宽，要相应抬高
+    private static let barAreaHeight: CGFloat = 64
 
     @State private var pulse: CGFloat = 1.0
 
@@ -398,7 +398,8 @@ private struct BarColumn: View {
     private var barHeight: CGFloat {
         if isRest { return 6 }
         let ratio = min(1.0, km / BarColumn.maxKm)
-        return CGFloat(10.0 + ratio * 36.0)
+        // 12 + 50 = 62pt 顶, 占柱区 ~97%；最矮活跃柱 ~12pt 也清晰可见
+        return CGFloat(12.0 + ratio * 50.0)
     }
 
     private var barColor: Color {
