@@ -632,8 +632,14 @@
       </div>
     </div>
 
+    <!-- Flex spacer — 等价于 SwiftUI 的 Spacer()。
+         在 308×632 预览上几乎无效（min 16px = 原 mt-4 间距），
+         在真机 393×844 / Pro Max 上吃掉所有富余高度，
+         让 START 按钮 + timeline 自然贴底而不是夹在中部。 -->
+    <div style="flex: 1 1 auto; min-height: 16px;"></div>
+
     <!-- START button (compact) -->
-    <button class="start-button start-button--compact relative z-10 mt-4" style="height: 88px;">
+    <button class="start-button start-button--compact relative z-10" style="height: 88px;">
       <div class="scan-arc"></div>
       <div class="gloss"></div>
       <span class="corner tl"></span>
