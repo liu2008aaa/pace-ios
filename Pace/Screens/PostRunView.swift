@@ -463,7 +463,6 @@ private struct RouteCometShape: Shape {
         let scaleY = rect.height / 86
 
         // 4 段 bezier 控制点 (viewBox 坐标)
-        // (P0, P1, P2, P3) — 同 RouteShape
         let segments: [(CGPoint, CGPoint, CGPoint, CGPoint)] = [
             (CGPoint(x: 30, y: 65),  CGPoint(x: 50, y: 67),  CGPoint(x: 70, y: 46),  CGPoint(x: 90, y: 44)),
             (CGPoint(x: 90, y: 44),  CGPoint(x: 110, y: 42), CGPoint(x: 130, y: 56), CGPoint(x: 150, y: 46)),
@@ -473,24 +472,35 @@ private struct RouteCometShape: Shape {
 
         let clamped = max(0.0, min(1.0, t))
         let segIdx = min(3, Int(clamped * 4))
-        let localT = (clamped * 4) - Double(segIdx)
+        // ⚠️ Swift 5.4 严格类型: 直接转成 CGFloat 后续全程 CGFloat 算
+        let localT = CGFloat((clamped * 4) - Double(segIdx))
         let seg = segments[segIdx]
         let pt = cubicBezier(t: localT, p0: seg.0, p1: seg.1, p2: seg.2, p3: seg.3)
         return CGPoint(x: pt.x * scaleX, y: pt.y * scaleY)
     }
 
     /// B(t) = (1-t)³P0 + 3(1-t)²t P1 + 3(1-t)t² P2 + t³ P3
-    private func cubicBezier(t: Double, p0: CGPoint, p1: CGPoint, p2: CGPoint, p3: CGPoint) -> CGPoint {
-        let mt = 1 - t
+    /// 全程 CGFloat 算 (Swift 5.4 不自动 Double↔CGFloat 转, CGPoint init 期望 CGFloat)
+    /// 多项式拆成子表达式避免类型检查器超时 (§1.x 经验)
+    private func cubicBezier(t: CGFloat, p0: CGPoint, p1: CGPoint, p2: CGPoint, p3: CGPoint) -> CGPoint {
+        let mt: CGFloat = 1 - t
         let mt2 = mt * mt
         let mt3 = mt2 * mt
         let t2 = t * t
         let t3 = t2 * t
-        let x = mt3 * Double(p0.x) + 3 * mt2 * t * Double(p1.x)
-              + 3 * mt * t2 * Double(p2.x) + t3 * Double(p3.x)
-        let y = mt3 * Double(p0.y) + 3 * mt2 * t * Double(p1.y)
-              + 3 * mt * t2 * Double(p2.y) + t3 * Double(p3.y)
-        return CGPoint(x: x, y: y)
+        let three: CGFloat = 3
+
+        // 拆成 4 个子表达式各自 CGFloat * CGFloat * CGFloat = CGFloat, 不混 Double
+        let x0 = mt3 * p0.x
+        let x1 = three * mt2 * t * p1.x
+        let x2 = three * mt * t2 * p2.x
+        let x3 = t3 * p3.x
+        let y0 = mt3 * p0.y
+        let y1 = three * mt2 * t * p1.y
+        let y2 = three * mt * t2 * p2.y
+        let y3 = t3 * p3.y
+
+        return CGPoint(x: x0 + x1 + x2 + x3, y: y0 + y1 + y2 + y3)
     }
 }
 

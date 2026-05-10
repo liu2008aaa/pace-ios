@@ -61,15 +61,56 @@ VStack {
 
 **写新屏的预防**: 直接子超过 7 就主动 wrap Group。**含 Spacer().frame() 也要数**。
 
-### 1.2 严格 CGFloat / Double 类型
+### 1.2 严格 CGFloat / Double 类型 ⚠️ 高频踩坑
+**犯错频率**: Pace v0.1.x, v0.4.0, v0.4.0.3 等多次.
+**症状**:
+- `Binary operator '*' cannot be applied to operands of type 'Double' and 'CGFloat'`
+- `Cannot convert value of type 'Double' to expected argument type 'CGFloat'`
+- `Cannot convert value of type 'CGFloat' to expected argument type 'Double'`
+
+**根因**: Swift 5.4 / iOS 14 SDK 不自动 Double↔CGFloat 转换 (Swift 5.5+ 引入了 CGFloat ↔ Double 隐式转换, 但 Xcode 12.5 的 5.4 不行)
+
+**铁律**: 在涉及视觉坐标 / 绘图 / 几何计算的代码里, **全程 CGFloat**, 不要混 Double。
+- `CGPoint`, `CGRect`, `.frame()`, `.padding()`, `.offset()`, Path 几何 → **必 CGFloat**
+- 业务数据 (公里数 / 时长 / 心率) → 用 Double (在 MockData / 业务逻辑层)
+- **两边交界处加 `CGFloat(...)` 转换**
+
 ```swift
-// ❌
-let height = 4.0 + intensity * 4.0   // intensity: Double → height: Double
-.frame(height: height)               // 类型不匹配 (期望 CGFloat)
+// ❌ 1. 简单情形: Double 计算结果塞 CGFloat 参数
+let height = 4.0 + intensity * 4.0   // Double
+.frame(height: height)               // 期望 CGFloat → 炸
 
 // ✅
 .frame(height: CGFloat(4.0 + intensity * 4.0))
+
+
+// ❌ 2. 复杂情形: cubicBezier 数学全 Double, 最后塞 CGPoint(x:y:)
+private func cubicBezier(t: Double, p0: CGPoint, ...) -> CGPoint {
+    let x = mt3 * Double(p0.x) + 3 * mt2 * t * Double(p1.x) + ...   // Double
+    return CGPoint(x: x, y: y)   // 期望 CGFloat → 炸
+}
+
+// ✅ 全程 CGFloat, 多项式拆子表达式避免类型检查器超时
+private func cubicBezier(t: CGFloat, p0: CGPoint, ...) -> CGPoint {
+    let mt: CGFloat = 1 - t
+    let mt2 = mt * mt
+    let three: CGFloat = 3
+    // ★ 关键: 拆成 4 个子表达式各自 CGFloat 流, 不混 Double
+    let x0 = mt3 * p0.x
+    let x1 = three * mt2 * t * p1.x
+    let x2 = three * mt * t2 * p2.x
+    let x3 = t3 * p3.x
+    return CGPoint(x: x0 + x1 + x2 + x3, y: ...)
+}
 ```
+
+**预防 checklist (写绘图代码前)**:
+1. 函数签名输入 — 视觉坐标参数声明 `CGFloat`, 业务数据声明 `Double`
+2. 中间变量 — 显式 `let mt: CGFloat = ...` 起头, 后续推断也是 CGFloat
+3. 字面量常量 — 写 `let three: CGFloat = 3`, 别让编译器猜
+4. 多项式 — 超过 3 个加法项就拆子表达式 (类型检查器会超时)
+5. 返回 CGPoint/CGRect/CGSize — 确认所有参数都是 CGFloat
+6. Animatable Shape — `animatableData: Double` 是 SwiftUI 协议要求, 在 `path()` 内部转成 CGFloat 用
 
 ### 1.3 iOS 15+/16+ API 不可用
 | 不能用 (iOS 15+/16+) | 替代 (iOS 14) |
