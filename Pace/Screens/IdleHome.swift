@@ -58,11 +58,12 @@ struct IdleHome: View {
                     timelineSection
                 }
 
-                Spacer()
+                // 不再加底部 Spacer：让 timeline 自然贴到底部安全区附近
+                // 唯一的 Spacer 在 AI 和 StartButton 之间，吸收所有剩余空间
             }
             .frame(maxHeight: .infinity)
             .padding(.horizontal, 16)
-            .padding(.bottom, 8)
+            .padding(.bottom, 12)
         }
     }
 
