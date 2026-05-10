@@ -542,6 +542,9 @@
       </div>
     </div>
 
+    <!-- Spacer A: 上区呼吸 (greeting → hairline) -->
+    <div style="flex: 1 1 0; min-height: 0;"></div>
+
     <!-- Hairline -->
     <div class="relative z-10 mt-3" style="height: 0.5px; background: linear-gradient(90deg, transparent, var(--hairline-bright) 30%, var(--hairline-bright) 70%, transparent);"></div>
 
@@ -590,6 +593,9 @@
       </span>
     </div>
 
+    <!-- Spacer B: 中区呼吸 (AI → rhythm card) -->
+    <div style="flex: 1 1 0; min-height: 0;"></div>
+
     <!-- ★★★ NEW: Weekly Rhythm card ★★★ -->
     <div class="rhythm-card mini-rhythm relative z-10 mt-3">
       <div class="rhythm-header">
@@ -632,11 +638,10 @@
       </div>
     </div>
 
-    <!-- Flex spacer — 等价于 SwiftUI 的 Spacer()。
-         在 308×632 预览上几乎无效（min 16px = 原 mt-4 间距），
-         在真机 393×844 / Pro Max 上吃掉所有富余高度，
-         让 START 按钮 + timeline 自然贴底而不是夹在中部。 -->
-    <div style="flex: 1 1 auto; min-height: 16px;"></div>
+    <!-- Spacer C: 下区呼吸 (rhythm card → START 按钮)。
+         与 Spacer A / B 同样 flex:1 basis:0 三等分多余高度，
+         min-height 16px 保 CTA 在任何屏幕上都至少有 16pt 视觉间隔。 -->
+    <div style="flex: 1 1 0; min-height: 16px;"></div>
 
     <!-- START button (compact) -->
     <button class="start-button start-button--compact relative z-10" style="height: 88px;">
