@@ -354,6 +354,47 @@ VStack(spacing: 0) {
 - 单屏满内容（无富余空间）→ 不需要 Spacer
 - hero 必须在视觉中心 → 改用 `Spacer + hero + Spacer + (其他全推到底部)`
 
+### 4.4 ⚠️ 三段呼吸**不是万能解**: 连贯数据流不能切
+
+**犯错频率**: Pace v0.4.0.3 PostRunView 强行套三段呼吸, 用户反馈"通过空挡撑出来不合适"
+
+**反例**: PostRunView 的 map → stats → chart 是同一个数据故事
+(路线 → 总结数字 → 趋势分析), 中间塞 Spacer 把它切三块, 视觉断裂
+
+```swift
+// ❌ 错: 数据流硬切
+VStack {
+    Group { brand; ai }
+    Spacer()                  // ← 红框 1 出现
+    Group { map; stats }
+    Spacer()                  // ← 红框 2 出现 (map 跟 stats 跟 chart 应该在一起!)
+    chart
+    Spacer()
+    actions
+}
+
+// ✅ 对: 数据流紧凑堆叠 + 单一底部 Spacer
+VStack {
+    Group {
+        brand; smallGap; ai
+        smallGap; map; smallGap; stats
+        smallGap; chart        // ← 数据故事一气呵成
+    }
+    Spacer()                  // ← 单一弹性吃 void
+    actions
+}
+```
+
+**判断准则**:
+| section 关系 | 用法 |
+|---|---|
+| **语义独立** (PreRun: countdown ↔ checklist 是两个独立模块) | 三段呼吸 ✓ |
+| **连贯数据流** (PostRun: map→stats→chart 同一故事) | 紧凑 + 单一底部 Spacer |
+| **页面是表单/列表** | 自然紧凑, 顶部对齐, 不要 Spacer |
+| **hero 主导** (IdleHome triad) | hero 居中 + 上下 Spacer 对称 |
+
+**配合策略**: 如果"紧凑 + 单一底部 Spacer"留出大块底部 void → **放大内容** (卡高 / 字号 / 按钮高), 别再加 Spacer.
+
 ---
 
 ## 5. 迭代纪律（避免 v0.1.13-17 那种 5 版地狱）

@@ -33,39 +33,27 @@ struct PostRunView: View {
         ZStack {
             Theme.bgApp.ignoresSafeArea()
 
-            // 三段呼吸 §4.3 — 把 200+pt 富余高度切 3 份分散在 3 个 Spacer,
-            // 不再单点积累 (旧版 v0.4.0 把全部 void 堆在 chart→actions 之间, 用户报红框)
+            // v0.4.0.7: 三段呼吸 ❌ 不适用于"连贯数据流" section
             //
-            // 逻辑分组:
-            //   Group A: brand + AI 洞察 (页面引子)
-            //   Spacer  ← 段 1
-            //   Group B: map + 主统计 3 列 (数据概览, 视觉相关性强用 fixed 10 衔接)
-            //   Spacer  ← 段 2
-            //   paceChart (深入分析)
-            //   Spacer  ← 段 3
-            //   actionRow (CTA)
+            // PostRun 的 map→stats→chart 是同一个数据故事 (路线 → 总结数字 →
+            // 趋势分析), 中间塞 Spacer 会硬切成无关三块, 视觉断裂.
+            // (PreRun 的 countdown ↔ checklist 才是语义独立的, 才适合三段呼吸)
             //
-            // ViewBuilder §1.1: VStack 直接子 = 7 (2 Group + 3 Spacer + paceChart + actionRow), 安全
+            // 正确做法: 数据流紧凑堆叠, 单一底部 Spacer 吃 void
             VStack(alignment: .leading, spacing: 0) {
                 Group {
                     brandStrip
                     Spacer().frame(height: 12)
                     aiInsightCard
-                }
-
-                Spacer()      // 段 1: header ↔ overview
-
-                Group {
+                    Spacer().frame(height: 14)
                     mapCard
                     Spacer().frame(height: 10)
                     statsRow
-                }
+                    Spacer().frame(height: 14)
+                    paceChart
+                }                    // 9 个子 ≤ 10, ViewBuilder 安全
 
-                Spacer()      // 段 2: overview ↔ chart
-
-                paceChart
-
-                Spacer()      // 段 3: chart ↔ ctas
+                Spacer()              // 单一底部弹性 — 吃所有 void
 
                 actionRow
             }
@@ -174,7 +162,7 @@ struct PostRunView: View {
         .foregroundColor(Theme.text2)
     }
 
-    // MARK: - 路线图卡片
+    // MARK: - 路线图卡片 (v0.4.0.7: 100 → 140, 让 map 真有"卡片"分量)
     private var mapCard: some View {
         ZStack(alignment: .topLeading) {
             // 深色底
@@ -182,7 +170,7 @@ struct PostRunView: View {
 
             // 网格 + 路线 SVG 翻译
             RouteMapView()
-                .frame(height: 100)
+                .frame(height: 140)
 
             // 顶左 ROUTE · 5.42 KM
             HStack {
@@ -204,12 +192,12 @@ struct PostRunView: View {
                         .kerning(1.2)
                 }
             }
-            .padding(8)
+            .padding(10)
         }
-        .frame(height: 100)
+        .frame(height: 140)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Theme.hairlineBright, lineWidth: 1)  // 边框可见 (§2.2)
+                .stroke(Theme.hairlineBright, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
@@ -240,13 +228,13 @@ struct PostRunView: View {
                     .kerning(0.6)
             }
 
-            // v0.4.0.3: 高度 72 → 100, 让图表更饱满, 同时减少底部需要分散的 void
+            // v0.4.0.7: 100 → 130 进一步放大, 减少底部 void
             PaceChartView(splitsY: PaceChartConstants.splitsY, endPulse: endPulse)
-                .frame(height: 100)
+                .frame(height: 130)
         }
     }
 
-    // MARK: - 底部双 CTA
+    // MARK: - 底部双 CTA (v0.4.0.7: 高度 48 → 56)
     private var actionRow: some View {
         HStack(spacing: 10) {
             // 分享 — primary 实心绿
@@ -255,14 +243,14 @@ struct PostRunView: View {
                 // v0.4.x: 切到 Phone 05 分享卡
             }) {
                 Text("分享")
-                    .font(PaceFont.cn(size: 15, weight: .bold))
+                    .font(PaceFont.cn(size: 16, weight: .bold))
                     .foregroundColor(Color(hex: 0x001A14))
-                    .kerning(2.4)
+                    .kerning(2.6)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 48)
+                    .frame(height: 56)
                     .background(Theme.accent)
                     .shadow(color: Theme.accent.opacity(0.42), radius: 14)
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                    .clipShape(RoundedRectangle(cornerRadius: 28))
             }
             .buttonStyle(PlainButtonStyle())
 
@@ -272,17 +260,17 @@ struct PostRunView: View {
                 presentationMode.wrappedValue.dismiss()
             }) {
                 Text("+ 备注")
-                    .font(PaceFont.cn(size: 14, weight: .semibold))
+                    .font(PaceFont.cn(size: 15, weight: .semibold))
                     .foregroundColor(Theme.text1)
-                    .kerning(1.8)
+                    .kerning(2.0)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 48)
+                    .frame(height: 56)
                     .background(Theme.bgElev)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 24)
+                        RoundedRectangle(cornerRadius: 28)
                             .stroke(Theme.hairlineBright, lineWidth: 1)
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                    .clipShape(RoundedRectangle(cornerRadius: 28))
             }
             .buttonStyle(PlainButtonStyle())
         }
