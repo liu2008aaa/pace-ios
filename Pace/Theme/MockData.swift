@@ -41,6 +41,19 @@ enum MockData {
         static let pace = "5'34\""
     }
 
+    enum WeekProgress {
+        static let kmThisWeek = 12.4
+        static let kmGoal = 30.0
+        static let runs = 4
+        static let avgPace = "5'18\""
+        static let deltaPercent = 12  // ↑12% vs 上周
+
+        /// 0.0 - 1.0 进度
+        static var ratio: Double {
+            min(1.0, kmThisWeek / kmGoal)
+        }
+    }
+
     /// 14 天活力点强度，0-1（越大越亮 / 越大尺寸）
     static let timeline: [Double] = [
         0.4, 0.5, 0.6, 0.4, 0.5, 0.7, 0.6,

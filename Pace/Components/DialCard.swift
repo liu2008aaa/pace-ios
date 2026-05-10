@@ -27,7 +27,7 @@ struct DialCard: View {
     let state: DialState
     var onPress: (() -> Void)?
 
-    private let ringRadius: CGFloat = 26
+    private let ringRadius: CGFloat = 32
 
     private var ringColor: Color {
         switch state {
@@ -110,35 +110,35 @@ struct DialCard: View {
                     }
 
                     // 中央数字
-                    VStack(spacing: 1) {
+                    VStack(spacing: 2) {
                         Text(value)
-                            .font(PaceFont.mono(size: 17, weight: .semibold))
+                            .font(PaceFont.mono(size: 22, weight: .semibold))
                             .foregroundColor(valueColor)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                         Text(unit)
-                            .font(PaceFont.mono(size: 6, weight: .regular))
+                            .font(PaceFont.mono(size: 7, weight: .regular))
                             .foregroundColor(Theme.text3)
                             .kerning(0.5)
                     }
                 }
-                .frame(height: 64)
-                .padding(.top, 2)
+                .frame(height: 76)
+                .padding(.top, 4)
 
                 // 主标签
                 Text(label)
-                    .font(PaceFont.cn(size: 9.5))
+                    .font(PaceFont.cn(size: 11))
                     .foregroundColor(Theme.text2)
                     .kerning(2)
-                    .padding(.top, 4)
+                    .padding(.top, 6)
 
                 // 元信息
                 Text(meta)
-                    .font(PaceFont.mono(size: 8))
+                    .font(PaceFont.mono(size: 9))
                     .foregroundColor(metaColor)
                     .kerning(0.4)
-                    .padding(.top, 3)
-                    .padding(.bottom, 9)
+                    .padding(.top, 4)
+                    .padding(.bottom, 11)
             }
             .frame(maxWidth: .infinity)
             .background(bgColor)

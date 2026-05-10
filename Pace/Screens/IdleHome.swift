@@ -34,7 +34,7 @@ struct IdleHome: View {
             Theme.bgApp.ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
-                // 顶部 6 个 → 合并为 1 个 Group 子元素
+                // 顶部 7 个 → 合并为 1 个 Group 子元素 (≤ 10, 安全)
                 Group {
                     brandStrip
                     greetingSection
@@ -42,6 +42,7 @@ struct IdleHome: View {
                     metricsHeader
                     triadSection
                     aiSuggestion
+                    weeklyProgressSection
                 }
 
                 Spacer()
@@ -208,7 +209,7 @@ struct IdleHome: View {
                 state: .good
             )
         }
-        .frame(minHeight: 110)
+        .frame(minHeight: 138)
     }
 
     // MARK: - AI 一句话建议
@@ -224,6 +225,12 @@ struct IdleHome: View {
                 .lineSpacing(3)
         }
         .padding(.top, 12)
+    }
+
+    // MARK: - 本周进度卡 (filler)
+    private var weeklyProgressSection: some View {
+        WeeklyProgressCard()
+            .padding(.top, 16)
     }
 
     // MARK: - Last run line
