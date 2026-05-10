@@ -13,8 +13,8 @@ import SwiftUI
 
 struct IdleHome: View {
 
-    // v0.3.0: 出发按钮 → fullScreenCover RunningView
-    @State private var showRunning = false
+    // v0.3.0: 出发按钮 → fullScreenCover PreRunView (倒计时归零内部切到 RunningView)
+    @State private var showPreRun = false
 
     // MARK: - Time-aware greeting prefix
     private var greetingPrefix: String {
@@ -53,9 +53,9 @@ struct IdleHome: View {
                 StartButton {
                     UINotificationFeedbackGenerator()
                         .notificationOccurred(.success)
-                    // v0.3: 直接进 RunningView
-                    // v0.4 计划: IdleHome → PreRun (GPS 等待) → RunningView
-                    showRunning = true
+                    // v0.3.2: IdleHome → PreRunView → (3s 倒计时) → RunningView
+                    // PreRunView 内部 if-else 切到 RunningView, 共用同一 fullScreenCover 层
+                    showPreRun = true
                 }
 
                 // 底部仅剩 14 天点阵带（含彗星扫描动画）。
@@ -66,11 +66,11 @@ struct IdleHome: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
         }
-        // 出发按钮 → 全屏接管的 RunningView
+        // 出发按钮 → 全屏接管的 PreRunView (内部 3s 倒计时后切 RunningView)
         // 用 fullScreenCover 而非 NavigationLink，因为跑步是"接管屏"
         // 不应该有 navigation bar / back swipe
-        .fullScreenCover(isPresented: $showRunning) {
-            RunningView()
+        .fullScreenCover(isPresented: $showPreRun) {
+            PreRunView()
         }
     }
 

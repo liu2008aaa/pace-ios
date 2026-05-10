@@ -72,6 +72,15 @@ enum MockData {
         0.5, 0.8, 0.6, 0.7, 0.5, 0.6,
     ]
 
+    /// Phone 02 跑前预热数据
+    enum PreRun {
+        static let countdownStart: Int = 3
+        static let gpsSatellites: Int = 12
+        static let restingHR: Int = 76
+        static let musicSource = "网易云 · 礼让模式"
+        static let voiceSetting = "每 1 km · 中文女声"
+    }
+
     /// Phone 03 跑步进行中数据
     /// v0.3 静态 mock；v0.5 真实 GPS / HKWorkoutSession 后会变成 Store 驱动的实时值
     enum Running {
