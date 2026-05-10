@@ -33,20 +33,22 @@ struct PostRunView: View {
         ZStack {
             Theme.bgApp.ignoresSafeArea()
 
-            // 三段呼吸 (§4.3): brand + Spacer + hero(map+stats) + Spacer + chart + Spacer + ctas
-            // 但本屏内容已较密集, Spacer 实际拉伸量小, 主要起均匀分布作用
+            // ⚠️ ViewBuilder 10-child 限制 (§1.1): 上半部 9 个元素用 Group 合并成 1,
+            // VStack 直接子 = 3 (Group + Spacer + actionRow), 安全
             VStack(alignment: .leading, spacing: 0) {
-                brandStrip
-                Spacer().frame(height: 12)
-                aiInsightCard
-                Spacer().frame(height: 10)
-                mapCard
-                Spacer().frame(height: 10)
-                statsRow
-                Spacer().frame(height: 14)
-                paceChart
+                Group {
+                    brandStrip
+                    Spacer().frame(height: 12)
+                    aiInsightCard
+                    Spacer().frame(height: 10)
+                    mapCard
+                    Spacer().frame(height: 10)
+                    statsRow
+                    Spacer().frame(height: 14)
+                    paceChart
+                }
 
-                Spacer()  // 主弹性吸收
+                Spacer()      // 主弹性吸收
 
                 actionRow
             }
@@ -221,7 +223,7 @@ struct PostRunView: View {
                     .kerning(0.6)
             }
 
-            PaceChartView(splitsY: MockData.PostRun.paceSplitsY, endPulse: endPulse)
+            PaceChartView(splitsY: PaceChartConstants.splitsY, endPulse: endPulse)
                 .frame(height: 72)
         }
     }
@@ -416,9 +418,17 @@ private struct RouteEndpoint: View {
     }
 }
 
+// MARK: - 配速折线图 - 视觉常量
+// CGFloat 类型必须放在 import SwiftUI 的文件里, 不能放 MockData (只有 Foundation)
+private enum PaceChartConstants {
+    /// 5 km 配速 y 坐标 (HTML viewBox 280×64, y 越小越快)
+    /// 第 5 公里最快 (12 = 最高位置)
+    static let splitsY: [CGFloat] = [24, 34, 28, 38, 12]
+}
+
 // MARK: - 每公里配速折线图
 //
-// 5 个数据点 (paceSplitsY), 折线连接 + 下方 area fill 渐变 + 节点圆环
+// 5 个数据点 (splitsY), 折线连接 + 下方 area fill 渐变 + 节点圆环
 // 末公里 (index 4) 用大圆突出
 //
 private struct PaceChartView: View {

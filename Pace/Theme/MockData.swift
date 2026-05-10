@@ -83,6 +83,9 @@ enum MockData {
     }
 
     /// Phone 04 结束总结数据
+    /// MockData 严格只用 Foundation 类型 (Double / Int / String / 元组),
+    /// 不导入 CoreGraphics / UIKit / SwiftUI。视觉常量 (路径坐标 / chart 几何)
+    /// 放在使用它们的 View 文件里 (PostRunView 等), 不进 MockData。
     enum PostRun {
         static let date = "5月7日"
         static let timeOfDay = "夜跑"
@@ -98,21 +101,10 @@ enum MockData {
         static let durationStr = "28:14"
         static let avgPace = "5'12\""
 
-        // 路线图
+        // 路线图 GPS 坐标
         static let coords = "31.2°N · 121.4°E"
-        // 按 HTML viewBox 280×86 的真值, SwiftUI 里按比例缩放绘制
-        // M 30,65 C 50,67 70,46 90,44 S ...
-        static let routeBezierPoints: [(CGPoint, CGPoint, CGPoint)] = [
-            // (control1, control2, endpoint) — start 在 (30, 65)
-            (CGPoint(x: 50, y: 67), CGPoint(x: 70, y: 46), CGPoint(x: 90, y: 44)),
-            (CGPoint(x: 110, y: 42), CGPoint(x: 130, y: 56), CGPoint(x: 150, y: 46)),
-            (CGPoint(x: 170, y: 36), CGPoint(x: 200, y: 26), CGPoint(x: 230, y: 30)),
-            (CGPoint(x: 260, y: 34), CGPoint(x: 258, y: 46), CGPoint(x: 254, y: 60)),
-        ]
 
-        // 每公里配速 (5 km), HTML 里是 viewBox y 坐标 (越小越快)
-        // [24, 34, 28, 38, 12] — 第 5 公里最快 (12 = 最高)
-        static let paceSplitsY: [CGFloat] = [24, 34, 28, 38, 12]
+        // 末公里相对全程平均的提升说明
         static let lastKmDelta = "↓ 末公里 -22s"
     }
 

@@ -34,21 +34,32 @@
 老 Mac (Big Sur 11.7.x) 锁死 Xcode 12.5 → 锁死 Swift 5.4 / iOS 14 SDK。
 新 SDK 的便利 API 全用不了，下面这些是踩过的炸弹：
 
-### 1.1 ViewBuilder 10-child 限制
+### 1.1 ViewBuilder 10-child 限制 ⚠️ 高频踩坑
+**犯错频率**: Pace v0.1.9, v0.4.0, ... 每次写新屏都可能再踩。
+**症状**: `Extra argument in call` (假错, 编译器误报真实原因)
+**触发**: VStack/HStack/ZStack 直接子元素 > 10
+**陷阱**: `Spacer().frame(height: X)` 也算一个子, 不是 brand 那种 view 才算
+
 ```swift
-// ❌ 报"Extra argument in call" 假错
+// ❌ 11 个子 → 炸
 VStack {
-    A; B; C; D; E; F; G; H; I; J; K  // 11 个直接子 → 炸
+    a; Spacer().frame(height: 12); b; Spacer().frame(height: 10); c
+    Spacer().frame(height: 10); d; Spacer().frame(height: 14); e; Spacer(); f
 }
 
-// ✅ 用 Group { } 合并
+// ✅ Group { } 合并前 N 个为 1 个子
 VStack {
     Group {
-        A; B; C; D; E; F; G  // 这 7 个算 1 个
+        a; Spacer().frame(height: 12); b; Spacer().frame(height: 10); c
+        Spacer().frame(height: 10); d; Spacer().frame(height: 14); e
     }
-    H; I; J; K  // 加上这 4 个 = 5 ≤ 10
+    Spacer()
+    f
 }
+// 实际子元素: Group + Spacer + f = 3 ≤ 10 ✓
 ```
+
+**写新屏的预防**: 直接子超过 7 就主动 wrap Group。**含 Spacer().frame() 也要数**。
 
 ### 1.2 严格 CGFloat / Double 类型
 ```swift
@@ -86,6 +97,43 @@ let height = 4.0 + intensity * 4.0   // intensity: Double → height: Double
 ### 1.5 GeometryReader + 嵌套 frame 慎用
 GeometryReader 内部用多参 `.frame(width:height:alignment:)` 容易触发类型推断超时。
 能用 ZStack alignment 自然对齐就别用 GeometryReader。
+
+### 1.7 数据文件不能用 CGPoint / CGFloat ⚠️ 高频踩坑
+**犯错频率**: Pace v0.4.0 写 MockData 路径坐标时踩。
+**症状**:
+```
+Cannot find type 'CGPoint' in scope
+Cannot find type 'CGFloat' in scope; did you mean to use 'CGFloat'?
+```
+**根因**: `import Foundation` **不带** CGPoint / CGFloat —— 它们在 CoreGraphics。
+
+**铁律**:
+- MockData / Constants / Model 等**纯数据文件**: 只 `import Foundation`,
+  **只用** `Double` / `Int` / `String` / 元组
+- 视觉常量（CGFloat 高度、CGPoint 路径坐标）: 放在 **`import SwiftUI` 的 View 文件**里
+  作为 private enum / struct 常量
+
+```swift
+// ❌ MockData.swift 只 import Foundation
+enum PostRun {
+    static let routePoints: [CGPoint] = [...]    // 编译失败
+    static let chartHeights: [CGFloat] = [...]   // 编译失败
+}
+
+// ✅ MockData 纯 Foundation, 视觉数据移到 View 文件
+// MockData.swift
+enum PostRun {
+    static let distanceKm: Double = 5.42  // 业务数据
+}
+
+// PostRunView.swift (import SwiftUI)
+private enum PaceChartConstants {
+    static let splitsY: [CGFloat] = [24, 34, 28, 38, 12]
+}
+```
+
+**例外**: 如果非要在 MockData 里用 CG 类型, 加 `import CoreGraphics` 即可。
+但更推荐保持 MockData 框架无关。
 
 ### 1.6 WKPreferences API 选老的
 ```swift
