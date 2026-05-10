@@ -299,6 +299,112 @@ struct IdleHome: View {
     }
 }
 
+// MARK: - 本周进度卡 (内联到此文件以避免 Xcode 12 的 "Add Files to Project" 摩擦)
+//
+// 该组件仅在 IdleHome 使用，所以直接放这里。后续如果其他屏复用，
+// 再提取到 Pace/Components/。
+//
+private struct WeeklyProgressCard: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            wpcHeaderRow
+            wpcMainStatRow
+            wpcProgressBar
+            wpcFooterRow
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(Theme.bgCard)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Theme.hairline, lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var wpcHeaderRow: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("本周")
+                .font(PaceFont.cn(size: 10))
+                .foregroundColor(Theme.text3)
+                .kerning(2.4)
+            Spacer()
+            Text("WEEK")
+                .font(PaceFont.mono(size: 8))
+                .foregroundColor(Theme.text4)
+                .kerning(1.7)
+        }
+    }
+
+    private var wpcMainStatRow: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(String(format: "%.1f", MockData.WeekProgress.kmThisWeek))
+                .font(PaceFont.mono(size: 28, weight: .semibold))
+                .foregroundColor(Theme.text1)
+            Text("/ \(Int(MockData.WeekProgress.kmGoal)) km")
+                .font(PaceFont.mono(size: 11))
+                .foregroundColor(Theme.text3)
+                .kerning(0.4)
+            Spacer()
+            wpcDeltaChip
+        }
+    }
+
+    private var wpcDeltaChip: some View {
+        Text("↑\(MockData.WeekProgress.deltaPercent)%")
+            .font(PaceFont.mono(size: 10, weight: .medium))
+            .foregroundColor(Theme.accent)
+            .kerning(0.5)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Theme.accent.opacity(0.08))
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(Theme.accent.opacity(0.25), lineWidth: 0.5)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+    }
+
+    private var wpcProgressBar: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Theme.text4.opacity(0.3))
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Theme.accent.opacity(0.7),
+                                Theme.accentBright,
+                            ]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: geo.size.width * CGFloat(MockData.WeekProgress.ratio))
+                    .shadow(color: Theme.accent.opacity(0.4), radius: 4)
+            }
+        }
+        .frame(height: 5)
+    }
+
+    private var wpcFooterRow: some View {
+        HStack(spacing: 6) {
+            Text("\(MockData.WeekProgress.runs) 次跑步")
+                .font(PaceFont.cn(size: 10))
+                .foregroundColor(Theme.text2)
+                .kerning(1.0)
+            Text("·")
+                .foregroundColor(Theme.text4)
+            Text("均速 \(MockData.WeekProgress.avgPace)/km")
+                .font(PaceFont.cn(size: 10))
+                .foregroundColor(Theme.text2)
+                .kerning(0.5)
+            Spacer()
+        }
+    }
+}
+
 #if DEBUG
 struct IdleHome_Previews: PreviewProvider {
     static var previews: some View {
