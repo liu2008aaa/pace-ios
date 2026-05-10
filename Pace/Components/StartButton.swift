@@ -41,24 +41,29 @@ struct StartButton: View {
                         )
                     )
 
-                // 雷达扫描圈 — AngularGradient (iOS 14+) 7s 旋转一周
+                // 雷达扫描圈 — AngularGradient (iOS 14+) 12s 旋转一周
                 // 模拟 HTML conic-gradient + spin-slow, 仅末段 ~70° 亮起像扫描光束
+                //
+                // v0.2.6 性能优化：
+                //  - 7s → 12s 慢转 (旧 Mac 模拟器集显跑得动, 真机本来就不卡)
+                //  - 去掉 .blendMode(.plusLighter) — offscreen render pass 是
+                //    动画里最重的开销，去掉后用提高的 opacity 补偿视觉
+                //  - opacity 0.7 → 0.85 (补偿丢失的加色叠加亮度)
                 RoundedRectangle(cornerRadius: 58)
                     .fill(
                         AngularGradient(
                             gradient: Gradient(stops: [
                                 .init(color: .clear, location: 0.0),
                                 .init(color: .clear, location: 0.80),
-                                .init(color: Theme.accent.opacity(0.55), location: 0.93),
-                                .init(color: Theme.accentBright.opacity(0.85), location: 0.99),
+                                .init(color: Theme.accent.opacity(0.45), location: 0.93),
+                                .init(color: Theme.accentBright.opacity(0.75), location: 0.99),
                                 .init(color: .clear, location: 1.0),
                             ]),
                             center: .center,
                             angle: .degrees(scanAngle)
                         )
                     )
-                    .blendMode(.plusLighter)  // 加色叠加, 不盖死背景
-                    .opacity(0.7)
+                    .opacity(0.85)
                     .clipShape(RoundedRectangle(cornerRadius: 58))
 
                 // 顶部高光层（HTML inset 0 1.5px 0 rgba(0,255,200,0.4) 等价）
@@ -147,8 +152,10 @@ struct StartButton: View {
             withAnimation(AppAnimation.glowBreathe) {
                 glowPhase = true
             }
-            // 雷达扫描 — 7s 一周, linear 永续
-            withAnimation(.linear(duration: 7).repeatForever(autoreverses: false)) {
+            // 雷达扫描 — 12s 一周, linear 永续
+            // (iOS 在 app backgrounding 时会自动暂停 Core Animation,
+            //  不需要手动接 scenePhase, 系统已处理省电)
+            withAnimation(.linear(duration: 12).repeatForever(autoreverses: false)) {
                 scanAngle = 360
             }
         }
