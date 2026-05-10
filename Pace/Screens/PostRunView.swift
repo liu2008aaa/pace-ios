@@ -33,22 +33,39 @@ struct PostRunView: View {
         ZStack {
             Theme.bgApp.ignoresSafeArea()
 
-            // ⚠️ ViewBuilder 10-child 限制 (§1.1): 上半部 9 个元素用 Group 合并成 1,
-            // VStack 直接子 = 3 (Group + Spacer + actionRow), 安全
+            // 三段呼吸 §4.3 — 把 200+pt 富余高度切 3 份分散在 3 个 Spacer,
+            // 不再单点积累 (旧版 v0.4.0 把全部 void 堆在 chart→actions 之间, 用户报红框)
+            //
+            // 逻辑分组:
+            //   Group A: brand + AI 洞察 (页面引子)
+            //   Spacer  ← 段 1
+            //   Group B: map + 主统计 3 列 (数据概览, 视觉相关性强用 fixed 10 衔接)
+            //   Spacer  ← 段 2
+            //   paceChart (深入分析)
+            //   Spacer  ← 段 3
+            //   actionRow (CTA)
+            //
+            // ViewBuilder §1.1: VStack 直接子 = 7 (2 Group + 3 Spacer + paceChart + actionRow), 安全
             VStack(alignment: .leading, spacing: 0) {
                 Group {
                     brandStrip
                     Spacer().frame(height: 12)
                     aiInsightCard
-                    Spacer().frame(height: 10)
+                }
+
+                Spacer()      // 段 1: header ↔ overview
+
+                Group {
                     mapCard
                     Spacer().frame(height: 10)
                     statsRow
-                    Spacer().frame(height: 14)
-                    paceChart
                 }
 
-                Spacer()      // 主弹性吸收
+                Spacer()      // 段 2: overview ↔ chart
+
+                paceChart
+
+                Spacer()      // 段 3: chart ↔ ctas
 
                 actionRow
             }
@@ -223,8 +240,9 @@ struct PostRunView: View {
                     .kerning(0.6)
             }
 
+            // v0.4.0.3: 高度 72 → 100, 让图表更饱满, 同时减少底部需要分散的 void
             PaceChartView(splitsY: PaceChartConstants.splitsY, endPulse: endPulse)
-                .frame(height: 72)
+                .frame(height: 100)
         }
     }
 
@@ -305,34 +323,26 @@ private struct StatCard: View {
 // MARK: - 路线图 SVG 翻译
 //
 // HTML (index.html#L2583-L2635): viewBox 280×86, 4 段 cubic bezier
-// 起点 (30, 65), 终点 (254, 60)
+// 起点 (30, 65), 终点 (254, 60), 4s linear comet 沿路径循环
 //
 private struct RouteMapView: View {
+    @State private var cometT: Double = 0
+
     var body: some View {
         ZStack {
-            // 网格背景
-            GeometryReader { geo in
-                let scaleX = geo.size.width / 280
-                let scaleY = geo.size.height / 86
+            // 暗格背景 (HTML <pattern> 20×20 mapGrid 翻译)
+            DenseGridShape()
+                .stroke(Color.white.opacity(0.04), lineWidth: 0.5)
 
-                // 4 条十字网格线 (HTML 2 横 + 2 竖)
-                Path { path in
-                    path.move(to: CGPoint(x: 0, y: 30 * scaleY))
-                    path.addLine(to: CGPoint(x: geo.size.width, y: 30 * scaleY))
-                    path.move(to: CGPoint(x: 0, y: 60 * scaleY))
-                    path.addLine(to: CGPoint(x: geo.size.width, y: 60 * scaleY))
-                    path.move(to: CGPoint(x: 80 * scaleX, y: 0))
-                    path.addLine(to: CGPoint(x: 80 * scaleX, y: geo.size.height))
-                    path.move(to: CGPoint(x: 200 * scaleX, y: 0))
-                    path.addLine(to: CGPoint(x: 200 * scaleX, y: geo.size.height))
-                }
-                .stroke(Color.white.opacity(0.06), style: StrokeStyle(lineWidth: 0.5, dash: [2, 4]))
-            }
+            // 4 条主十字网格 (HTML 2 横 + 2 竖, 比 dense grid 略亮)
+            MajorGridShape()
+                .stroke(Color.white.opacity(0.08), style: StrokeStyle(lineWidth: 0.5, dash: [2, 4]))
 
-            // 路线 — 双层: 底层模糊宽线 + 顶层渐变细线
+            // 路线底层 — 模糊宽线
             RouteShape()
                 .stroke(Theme.accent.opacity(0.20), style: StrokeStyle(lineWidth: 6, lineCap: .round))
 
+            // 路线顶层 — 渐变细线
             RouteShape()
                 .stroke(
                     LinearGradient(
@@ -347,12 +357,140 @@ private struct RouteMapView: View {
                     style: StrokeStyle(lineWidth: 2.2, lineCap: .round)
                 )
 
-            // 起点 (绿色环 + 点)
+            // 起点
             RouteEndpoint(at: CGPoint(x: 30, y: 65), kind: .start)
 
-            // 终点 (亮绿点 + 外圈)
+            // 终点
             RouteEndpoint(at: CGPoint(x: 254, y: 60), kind: .end)
+
+            // 彗星粒子 — 沿 bezier 4s linear 循环
+            // (按 HTML 4 颗粒, 用 Animatable Shape 让 path() 每帧重算位置)
+            RouteCometShape(t: cometT, radius: 5)
+                .fill(Theme.accentBright.opacity(0.40))
+                .blur(radius: 3)
+            RouteCometShape(t: cometT, radius: 2)
+                .fill(Theme.accentBright)
+
+            // 尾粒子 (相位偏移 -0.05 / -0.10, HTML 4s 周期里的 -0.2s / -0.4s)
+            RouteCometShape(t: max(0, cometT - 0.05), radius: 1.4)
+                .fill(Theme.accent.opacity(0.5))
+            RouteCometShape(t: max(0, cometT - 0.10), radius: 1.0)
+                .fill(Color(hex: 0x008866).opacity(0.4))
         }
+        .onAppear {
+            // 4s linear 循环 (HTML <animateMotion dur="4s" repeatCount="indefinite">)
+            withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
+                cometT = 1
+            }
+        }
+    }
+}
+
+// MARK: - 暗格背景 (HTML <pattern id="mapGrid">)
+// 20×20 viewBox 单位的网格, 在 280×86 viewBox 上是 14 列 × 4.3 行
+private struct DenseGridShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let scaleX = rect.width / 280
+        let scaleY = rect.height / 86
+        let step: Double = 20
+
+        var x: Double = 0
+        while x <= 280 {
+            p.move(to: CGPoint(x: x * scaleX, y: 0))
+            p.addLine(to: CGPoint(x: x * scaleX, y: rect.height))
+            x += step
+        }
+
+        var y: Double = 0
+        while y <= 86 {
+            p.move(to: CGPoint(x: 0, y: y * scaleY))
+            p.addLine(to: CGPoint(x: rect.width, y: y * scaleY))
+            y += step
+        }
+        return p
+    }
+}
+
+// MARK: - 主十字网格 (突出于密格之上的虚线)
+private struct MajorGridShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let scaleX = rect.width / 280
+        let scaleY = rect.height / 86
+
+        // 2 条横 (y=30, 60)
+        for y: Double in [30, 60] {
+            p.move(to: CGPoint(x: 0, y: y * scaleY))
+            p.addLine(to: CGPoint(x: rect.width, y: y * scaleY))
+        }
+        // 2 条竖 (x=80, 200)
+        for x: Double in [80, 200] {
+            p.move(to: CGPoint(x: x * scaleX, y: 0))
+            p.addLine(to: CGPoint(x: x * scaleX, y: rect.height))
+        }
+        return p
+    }
+}
+
+// MARK: - 彗星粒子 (Animatable Shape, t∈[0,1] 沿 bezier 路径)
+//
+// 关键: animatableData 让 SwiftUI 每帧用插值后的 t 调 path(),
+// 这样位置每帧重算, 视觉上沿曲线流动 (而非两端点之间直线插值)
+//
+private struct RouteCometShape: Shape {
+    var t: Double
+    var radius: CGFloat
+
+    var animatableData: Double {
+        get { t }
+        set { t = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let pos = pointOnRoute(t: t, in: rect)
+        return Path(ellipseIn: CGRect(
+            x: pos.x - radius,
+            y: pos.y - radius,
+            width: radius * 2,
+            height: radius * 2
+        ))
+    }
+
+    /// 4 段 cubic bezier, 每段占 t 的 1/4
+    private func pointOnRoute(t: Double, in rect: CGRect) -> CGPoint {
+        let scaleX = rect.width / 280
+        let scaleY = rect.height / 86
+
+        // 4 段 bezier 控制点 (viewBox 坐标)
+        // (P0, P1, P2, P3) — 同 RouteShape
+        let segments: [(CGPoint, CGPoint, CGPoint, CGPoint)] = [
+            (CGPoint(x: 30, y: 65),  CGPoint(x: 50, y: 67),  CGPoint(x: 70, y: 46),  CGPoint(x: 90, y: 44)),
+            (CGPoint(x: 90, y: 44),  CGPoint(x: 110, y: 42), CGPoint(x: 130, y: 56), CGPoint(x: 150, y: 46)),
+            (CGPoint(x: 150, y: 46), CGPoint(x: 170, y: 36), CGPoint(x: 200, y: 26), CGPoint(x: 230, y: 30)),
+            (CGPoint(x: 230, y: 30), CGPoint(x: 260, y: 34), CGPoint(x: 258, y: 46), CGPoint(x: 254, y: 60)),
+        ]
+
+        let clamped = max(0.0, min(1.0, t))
+        let segIdx = min(3, Int(clamped * 4))
+        let localT = (clamped * 4) - Double(segIdx)
+        let seg = segments[segIdx]
+        let pt = cubicBezier(t: localT, p0: seg.0, p1: seg.1, p2: seg.2, p3: seg.3)
+        return CGPoint(x: pt.x * scaleX, y: pt.y * scaleY)
+    }
+
+    /// B(t) = (1-t)³P0 + 3(1-t)²t P1 + 3(1-t)t² P2 + t³ P3
+    private func cubicBezier(t: Double, p0: CGPoint, p1: CGPoint, p2: CGPoint, p3: CGPoint) -> CGPoint {
+        let mt = 1 - t
+        let mt2 = mt * mt
+        let mt3 = mt2 * mt
+        let t2 = t * t
+        let t3 = t2 * t
+        let x = mt3 * Double(p0.x) + 3 * mt2 * t * Double(p1.x)
+              + 3 * mt * t2 * Double(p2.x) + t3 * Double(p3.x)
+        let y = mt3 * Double(p0.y) + 3 * mt2 * t * Double(p1.y)
+              + 3 * mt * t2 * Double(p2.y) + t3 * Double(p3.y)
+        return CGPoint(x: x, y: y)
     }
 }
 
