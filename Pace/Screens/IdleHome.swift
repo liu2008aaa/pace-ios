@@ -24,17 +24,25 @@ struct IdleHome: View {
     }
 
     // MARK: - Body (small, simple)
+    //
+    // 注意：SwiftUI 的 @ViewBuilder 在 iOS 14 / Swift 5.4 上每个容器
+    // 最多支持 10 个直接子 view（buildBlock 重载到 10 参数为止）。
+    // 超过 10 个会报 "Extra argument in call"。这里用 Group { } 把
+    // 相关的合并成 1 个子元素，让 VStack 直接子元素 ≤ 10。
     var body: some View {
         ZStack(alignment: .topLeading) {
             Theme.bgApp.ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
-                brandStrip
-                greetingSection
-                hairlineDivider
-                metricsHeader
-                triadSection
-                aiSuggestion
+                // 顶部 6 个 → 合并为 1 个 Group 子元素
+                Group {
+                    brandStrip
+                    greetingSection
+                    hairlineDivider
+                    metricsHeader
+                    triadSection
+                    aiSuggestion
+                }
 
                 Spacer()
 
@@ -44,8 +52,11 @@ struct IdleHome: View {
                     // v0.2: navigate to /pre-run
                 }
 
-                lastRunLine
-                timelineSection
+                // 底部 2 个 → 合并为 1 个 Group 子元素
+                Group {
+                    lastRunLine
+                    timelineSection
+                }
 
                 Spacer()
             }
