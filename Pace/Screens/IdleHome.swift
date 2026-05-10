@@ -80,15 +80,15 @@ struct IdleHome: View {
     private var coachChip: some View {
         HStack(spacing: 5) {
             Text("✦")
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .foregroundColor(Theme.accent)
             Text("教练")
-                .font(PaceFont.cn(size: 9))
+                .font(PaceFont.cn(size: 11))
                 .foregroundColor(Theme.accent)
-                .kerning(1.08)
+                .kerning(0.5)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
         .background(Theme.accent.opacity(0.08))
         .overlay(
             RoundedRectangle(cornerRadius: 999)
@@ -153,7 +153,7 @@ struct IdleHome: View {
     // MARK: - Hairline divider
     private var hairlineDivider: some View {
         Hairline()
-            .padding(.top, 26)
+            .padding(.top, 16)
     }
 
     // MARK: - Metrics header
@@ -169,8 +169,8 @@ struct IdleHome: View {
                 .foregroundColor(Theme.text4)
                 .kerning(1.76)
         }
-        .padding(.top, 22)
-        .padding(.bottom, 12)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
     }
 
     // MARK: - Triad of dials
