@@ -28,11 +28,22 @@ struct RunningView: View {
 
     @State private var isPaused = false
     @State private var endConfirming = false   // 暂停态下首次点结束 → 进入二次确认窗口
+    @State private var goPostRun = false       // v0.4.0: 二次确认 → 切到 PostRunView
 
     @State private var glowPhase = false       // 巨大配速数字呼吸光晕 (仅 running 时跑)
     @State private var pulsePhase = false      // GPS / 暂停 圆点呼吸
 
     var body: some View {
+        // 同 PreRunView → RunningView 的换页模式: 用 if-else 替换内容,
+        // 共享同一 fullScreenCover 层, dismiss 自动一直传到 IdleHome
+        if goPostRun {
+            PostRunView()
+        } else {
+            runningContent
+        }
+    }
+
+    private var runningContent: some View {
         ZStack {
             Theme.bgApp.ignoresSafeArea()
 
@@ -351,9 +362,9 @@ struct RunningView: View {
     // 二次确认结束 — 第一次进入 confirming 态, 3 秒后没第二次点击则回退
     private func handleEndTap() {
         if endConfirming {
-            // 第二次点击 → 真结束
+            // 第二次点击 → 切到 PostRunView (而非 dismiss)
             UINotificationFeedbackGenerator().notificationOccurred(.warning)
-            presentationMode.wrappedValue.dismiss()
+            goPostRun = true
         } else {
             // 第一次点击 → 进入 confirming, 3s 兜底回滚
             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()

@@ -82,6 +82,40 @@ enum MockData {
         static let voiceSetting = "每 1 km · 中文女声"
     }
 
+    /// Phone 04 结束总结数据
+    enum PostRun {
+        static let date = "5月7日"
+        static let timeOfDay = "夜跑"
+
+        // AI insight 文案 (3 段拼接, 中段是 highlight)
+        static let aiBefore = "今晚状态稳定。最后 1 公里 "
+        static let aiHighlight = "5'02\""
+        static let aiAfter = " —— 30 天内最强尾段。"
+        static let aiCounter = "AI · 1 / 3"
+
+        // 主统计 (3 列卡)
+        static let distanceKm: Double = 5.42
+        static let durationStr = "28:14"
+        static let avgPace = "5'12\""
+
+        // 路线图
+        static let coords = "31.2°N · 121.4°E"
+        // 按 HTML viewBox 280×86 的真值, SwiftUI 里按比例缩放绘制
+        // M 30,65 C 50,67 70,46 90,44 S ...
+        static let routeBezierPoints: [(CGPoint, CGPoint, CGPoint)] = [
+            // (control1, control2, endpoint) — start 在 (30, 65)
+            (CGPoint(x: 50, y: 67), CGPoint(x: 70, y: 46), CGPoint(x: 90, y: 44)),
+            (CGPoint(x: 110, y: 42), CGPoint(x: 130, y: 56), CGPoint(x: 150, y: 46)),
+            (CGPoint(x: 170, y: 36), CGPoint(x: 200, y: 26), CGPoint(x: 230, y: 30)),
+            (CGPoint(x: 260, y: 34), CGPoint(x: 258, y: 46), CGPoint(x: 254, y: 60)),
+        ]
+
+        // 每公里配速 (5 km), HTML 里是 viewBox y 坐标 (越小越快)
+        // [24, 34, 28, 38, 12] — 第 5 公里最快 (12 = 最高)
+        static let paceSplitsY: [CGFloat] = [24, 34, 28, 38, 12]
+        static let lastKmDelta = "↓ 末公里 -22s"
+    }
+
     /// Phone 03 跑步进行中数据
     /// v0.3 静态 mock；v0.5 真实 GPS / HKWorkoutSession 后会变成 Store 驱动的实时值
     enum Running {
