@@ -13,6 +13,9 @@ import SwiftUI
 
 struct IdleHome: View {
 
+    // v0.3.0: 出发按钮 → fullScreenCover RunningView
+    @State private var showRunning = false
+
     // MARK: - Time-aware greeting prefix
     private var greetingPrefix: String {
         let h = Calendar.current.component(.hour, from: Date())
@@ -50,7 +53,9 @@ struct IdleHome: View {
                 StartButton {
                     UINotificationFeedbackGenerator()
                         .notificationOccurred(.success)
-                    // v0.2: navigate to /pre-run
+                    // v0.3: 直接进 RunningView
+                    // v0.4 计划: IdleHome → PreRun (GPS 等待) → RunningView
+                    showRunning = true
                 }
 
                 // 底部仅剩 14 天点阵带（含彗星扫描动画）。
@@ -60,6 +65,12 @@ struct IdleHome: View {
             .frame(maxHeight: .infinity)
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
+        }
+        // 出发按钮 → 全屏接管的 RunningView
+        // 用 fullScreenCover 而非 NavigationLink，因为跑步是"接管屏"
+        // 不应该有 navigation bar / back swipe
+        .fullScreenCover(isPresented: $showRunning) {
+            RunningView()
         }
     }
 

@@ -71,4 +71,25 @@ enum MockData {
         0.4, 0.5, 0.6, 0.4, 0.5, 0.7, 0.6,
         0.5, 0.8, 0.6, 0.7, 0.5, 0.6,
     ]
+
+    /// Phone 03 跑步进行中数据
+    /// v0.3 静态 mock；v0.5 真实 GPS / HKWorkoutSession 后会变成 Store 驱动的实时值
+    enum Running {
+        static let activityType = "户外跑"
+        static let gpsStatus = "GPS 锁定"
+        static let temperature = "11°C"
+
+        // 实时配速 (huge hero number)
+        static let pace = "5'24\""
+
+        // 距离 / 时长
+        static let distanceKm = 3.42
+        static let durationStr = "18:32"
+        static let splitNumber = 4
+
+        // 心率
+        static let heartRate = 152
+        static let hrZonePercent: Double = 0.52   // 0..1 marker 在 5 段 bar 上的位置
+        static let hrZoneLabel = "Z3 · TEMPO"
+    }
 }
