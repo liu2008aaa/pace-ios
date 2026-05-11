@@ -13,6 +13,8 @@
 import SwiftUI
 
 struct WeekHistoryView: View {
+    @Environment(\.presentationMode) private var presentationMode
+
     var body: some View {
         ZStack {
             Theme.bgApp.ignoresSafeArea()
@@ -39,9 +41,27 @@ struct WeekHistoryView: View {
         }
     }
 
-    // MARK: - 顶部条 (历史 + 周/月/年 分段控件 + ✦ chip)
+    // MARK: - 顶部条 (← 返回 + 历史 + 周/月/年 + ✦ chip)
     private var brandStrip: some View {
-        HStack {
+        HStack(spacing: 10) {
+            // 返回按钮 (v0.4.2.1 加)
+            Button(action: {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                presentationMode.wrappedValue.dismiss()
+            }) {
+                Text("←")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(Theme.text2)
+                    .frame(width: 30, height: 30)
+                    .background(Theme.bgElev)
+                    .overlay(
+                        Circle()
+                            .stroke(Theme.hairlineBright, lineWidth: 1)
+                    )
+                    .clipShape(Circle())
+            }
+            .buttonStyle(PlainButtonStyle())
+
             Text("历史")
                 .font(PaceFont.cn(size: 13, weight: .semibold))
                 .foregroundColor(Theme.text2)

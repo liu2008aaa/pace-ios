@@ -16,6 +16,9 @@ struct IdleHome: View {
     // v0.3.0: 出发按钮 → fullScreenCover PreRunView (倒计时归零内部切到 RunningView)
     @State private var showPreRun = false
 
+    // v0.4.2.1: 本周节奏卡 → fullScreenCover WeekHistoryView (周历史)
+    @State private var showWeekHistory = false
+
     // MARK: - Time-aware greeting prefix
     private var greetingPrefix: String {
         let h = Calendar.current.component(.hour, from: Date())
@@ -71,6 +74,11 @@ struct IdleHome: View {
         // 不应该有 navigation bar / back swipe
         .fullScreenCover(isPresented: $showPreRun) {
             PreRunView()
+        }
+        // 本周节奏卡 → 全屏 WeekHistoryView (周历史完整页)
+        // v0.4.2.1: 用户反馈 Phone 06 缺入口
+        .fullScreenCover(isPresented: $showWeekHistory) {
+            WeekHistoryView()
         }
     }
 
@@ -234,9 +242,16 @@ struct IdleHome: View {
     }
 
     // MARK: - 本周节奏卡（7 日柱图 + 今日发光圆点 + 连跑 chip）
+    // v0.4.2.1: 点击进入 WeekHistoryView 周历史完整页
     private var weeklyRhythmSection: some View {
-        WeeklyRhythmCard()
-            .padding(.top, 24)
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            showWeekHistory = true
+        }) {
+            WeeklyRhythmCard()
+        }
+        .buttonStyle(PlainButtonStyle())
+        .padding(.top, 24)
     }
 
     // MARK: - 14-day timeline
