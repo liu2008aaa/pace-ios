@@ -42,7 +42,7 @@ struct ShareView: View {
                 Spacer()      // 单一底部弹性吃 void
             }
             .padding(.horizontal, 14)
-            .padding(.bottom, 12)
+            .padding(.bottom, 4)   // 12 → 4: 安全区已留出 ~34pt home indicator 空间, 自加 4pt 微调
         }
     }
 
@@ -319,8 +319,9 @@ private struct MiniClassic: View {
                         .kerning(-1.2)
                         .padding(.top, 6)
 
-                    // 迷你曲线 SVG
-                    MiniClassicCurve()
+                    // 迷你曲线 SVG (HTML index.html#L2756-L2760)
+                    // 改 ZStack: 曲线描边 + 起点空心环 + 终点实心点
+                    MiniClassicCurveLayer()
                         .frame(height: 28)
                         .padding(.top, 6)
 
@@ -352,20 +353,57 @@ private struct MiniClassic: View {
 }
 
 // MARK: - Mini 1 内嵌的迷你曲线 (经典样式专属)
-private struct MiniClassicCurve: Shape {
+// v0.4.1.3: 改成 layer view, 包含曲线 stroke + 起点空心环 + 终点实心点
+// 原 MiniClassicCurve (Shape) 没加 .stroke() 默认 fill, 渲染成黑块 → 修复.
+private struct MiniClassicCurveLayer: View {
+    var body: some View {
+        GeometryReader { geo in
+            // 显式 CGFloat 类型避免 Swift 5.4 推断歧义
+            let scaleX: CGFloat = geo.size.width / 110
+            let scaleY: CGFloat = geo.size.height / 20
+            // viewBox 起点 (4, 16), 终点 (106, 14)
+            let startX: CGFloat = 4 * scaleX
+            let startY: CGFloat = 16 * scaleY
+            let endX: CGFloat = 106 * scaleX
+            let endY: CGFloat = 14 * scaleY
+
+            ZStack {
+                // 曲线 stroke (accent, 1.2pt linecap round)
+                MiniClassicCurveShape()
+                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+
+                // 起点空心环 (r=2 stroke 0.8)
+                Circle()
+                    .stroke(Theme.accent, lineWidth: 0.8)
+                    .frame(width: 3.5, height: 3.5)
+                    .position(x: startX, y: startY)
+
+                // 终点实心点 (accentBright)
+                Circle()
+                    .fill(Theme.accentBright)
+                    .frame(width: 3.5, height: 3.5)
+                    .shadow(color: Theme.accent.opacity(0.5), radius: 2)
+                    .position(x: endX, y: endY)
+            }
+        }
+    }
+}
+
+// 曲线 Shape (只画路径, stroke/fill 由调用方决定)
+private struct MiniClassicCurveShape: Shape {
     func path(in rect: CGRect) -> Path {
         var p = Path()
         let scaleX: CGFloat = rect.width / 110
         let scaleY: CGFloat = rect.height / 20
-        // HTML: M 4 16 C 18 16, 26 4, 40 6 S 64 12, 78 4 S 100 10, 106 14
         func vp(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
             CGPoint(x: rect.minX + x * scaleX, y: rect.minY + y * scaleY)
         }
+        // HTML: M 4 16 C 18 16, 26 4, 40 6 S 64 12, 78 4 S 100 10, 106 14
         p.move(to: vp(4, 16))
         p.addCurve(to: vp(40, 6),  control1: vp(18, 16), control2: vp(26, 4))
-        // S 64 12, 78 4: mirror cp = 2*(40,6) - (26,4) = (54, 8)
+        // S 64 12, 78 4: mirror cp1 = 2*(40,6) - (26,4) = (54, 8)
         p.addCurve(to: vp(78, 4),  control1: vp(54, 8),  control2: vp(64, 12))
-        // S 100 10, 106 14: mirror cp = 2*(78,4) - (64,12) = (92, -4)
+        // S 100 10, 106 14: mirror cp1 = 2*(78,4) - (64,12) = (92, -4)
         p.addCurve(to: vp(106, 14), control1: vp(92, -4), control2: vp(100, 10))
         return p
     }
