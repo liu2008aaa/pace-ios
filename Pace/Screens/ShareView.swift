@@ -195,14 +195,14 @@ private struct SharePillButton: View {
     var body: some View {
         Button(action: onTap) {
             Text(label)
-                .font(PaceFont.cn(size: 13, weight: primary ? .bold : .semibold))
+                .font(PaceFont.cn(size: 15, weight: primary ? .bold : .semibold))
                 .foregroundColor(primary ? Color(hex: 0x001A14) : Theme.text1)
-                .kerning(1.6)
+                .kerning(1.8)
                 .frame(maxWidth: .infinity)
-                .frame(height: 38)
+                .frame(height: 50)
                 .background(primary ? Theme.accent : Theme.bgElev)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 19)
+                    RoundedRectangle(cornerRadius: 25)
                         .stroke(
                             primary ? Color.clear : Theme.hairlineBright,
                             lineWidth: 1
@@ -210,9 +210,9 @@ private struct SharePillButton: View {
                 )
                 .shadow(
                     color: primary ? Theme.accent.opacity(0.42) : Color.clear,
-                    radius: 10
+                    radius: 12
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 19))
+                .clipShape(RoundedRectangle(cornerRadius: 25))
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -230,39 +230,41 @@ private struct MiniFrame<Content: View>: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             content()
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
             // 角标 cn (top-left)
             Text(style.cn)
-                .font(PaceFont.cn(size: 10, weight: active ? .heavy : .medium))
+                .font(PaceFont.cn(size: 11, weight: active ? .heavy : .medium))
                 .foregroundColor(active ? Color(hex: 0x001A14) : .white)
-                .kerning(1.6)
-                .padding(.horizontal, 7)
-                .padding(.vertical, 2)
+                .kerning(1.8)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
                 .background(active ? Theme.accent : Color.black.opacity(0.55))
                 .clipShape(RoundedRectangle(cornerRadius: 999))
-                .padding(6)
+                .padding(7)
 
             // 角标 en (top-right)
             HStack {
                 Spacer()
                 Text(style.en)
-                    .font(PaceFont.mono(size: 7, weight: .medium))
+                    .font(PaceFont.mono(size: 7.5, weight: .medium))
                     .foregroundColor(active ? Theme.accent.opacity(0.7) : Theme.text4)
-                    .kerning(1.5)
-                    .padding(.top, 8)
-                    .padding(.trailing, 7)
+                    .kerning(1.6)
+                    .padding(.top, 9)
+                    .padding(.trailing, 8)
             }
         }
-        .frame(height: 174)
+        // v0.4.1.2: 174 → 232 (HTML × 1.33, 让 mini 真有"卡片"分量,
+        //          铺满 12 Pro 844pt 屏不留底空洞)
+        .frame(height: 232)
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: 12)
                 .stroke(
                     active ? Theme.accent : Theme.hairlineBright,
                     lineWidth: active ? 1.5 : 1
                 )
         )
-        .shadow(color: active ? Theme.accent.opacity(0.30) : .clear, radius: 12)
+        .shadow(color: active ? Theme.accent.opacity(0.30) : .clear, radius: 14)
     }
 }
 
@@ -312,15 +314,15 @@ private struct MiniClassic: View {
                     }
 
                     Text(String(format: "%.2f", MockData.PostRun.distanceKm))
-                        .font(.system(size: 30, weight: .bold, design: .monospaced))
+                        .font(.system(size: 38, weight: .bold, design: .monospaced))
                         .foregroundColor(.white)
-                        .kerning(-1.0)
-                        .padding(.top, 4)
+                        .kerning(-1.2)
+                        .padding(.top, 6)
 
                     // 迷你曲线 SVG
                     MiniClassicCurve()
-                        .frame(height: 22)
-                        .padding(.top, 4)
+                        .frame(height: 28)
+                        .padding(.top, 6)
 
                     // 4 列小数据
                     HStack {
@@ -397,16 +399,16 @@ private struct MiniMinimal: View {
                     Spacer()
                 }
 
-                // 居中大数字
-                VStack(spacing: 6) {
+                // 居中大数字 (mini 卡 232 高, 数字也得撑场子)
+                VStack(spacing: 8) {
                     Text(String(format: "%.2f", MockData.PostRun.distanceKm))
-                        .font(.system(size: 38, weight: .medium, design: .monospaced))
+                        .font(.system(size: 48, weight: .medium, design: .monospaced))
                         .foregroundColor(.white)
-                        .kerning(-1.4)
+                        .kerning(-1.8)
                     Text("公里")
-                        .font(PaceFont.cn(size: 10, weight: .medium))
+                        .font(PaceFont.cn(size: 11, weight: .medium))
                         .foregroundColor(Theme.text3)
-                        .kerning(3.4)
+                        .kerning(3.8)
                 }
 
                 // 左下日期
@@ -483,10 +485,10 @@ private struct MiniPoster: View {
                         .foregroundColor(Theme.accent)
 
                     Text(MockData.Share.posterTitle)
-                        .font(.system(size: 22, weight: .bold, design: .monospaced))
+                        .font(.system(size: 28, weight: .bold, design: .monospaced))
                         .foregroundColor(.white)
-                        .kerning(-0.4)
-                        .shadow(color: Theme.accent.opacity(0.4), radius: 8)
+                        .kerning(-0.5)
+                        .shadow(color: Theme.accent.opacity(0.4), radius: 10)
 
                     Text(MockData.Share.posterSub)
                         .font(PaceFont.mono(size: 7, weight: .medium))
