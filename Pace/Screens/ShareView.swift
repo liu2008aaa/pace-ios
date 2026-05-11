@@ -720,14 +720,18 @@ private struct MiniData: View {
                     Spacer()
 
                     // 底部 HR
+                    // ⚠️ iOS 14: .kerning() 是 Text-only, 不能挂 HStack
+                    // 把 kerning 移到每个 Text 内, .font/.foregroundColor 保留在
+                    // HStack 上 (这俩是 View modifier, 会传递给 descendant Text)
                     HStack {
                         Text(MockData.Share.dataFooter.0)
+                            .kerning(1.0)
                         Spacer()
                         Text(MockData.Share.dataFooter.1)
+                            .kerning(1.0)
                     }
                     .font(PaceFont.mono(size: 7, weight: .medium))
                     .foregroundColor(Theme.text3)
-                    .kerning(1.0)
                     .padding(.top, 3)
                     .overlay(
                         Rectangle()

@@ -139,6 +139,35 @@ private func cubicBezier(t: CGFloat, p0: CGPoint, ...) -> CGPoint {
 GeometryReader 内部用多参 `.frame(width:height:alignment:)` 容易触发类型推断超时。
 能用 ZStack alignment 自然对齐就别用 GeometryReader。
 
+### 1.8 .kerning() 是 Text-only 在 iOS 14 ⚠️ 高频踩坑
+**犯错频率**: Pace v0.4.1 ShareView MiniData 底部 HR.
+
+**症状**:
+- `Value of type 'some View' has no member 'kerning'`
+- 后续 modifier 跟着炸 "Cannot infer contextual base..."
+
+**根因**: iOS 14 的 `.kerning(_:)` 是 Text method, 返回 Text. iOS 16+ 才提升为 View modifier.
+
+```swift
+// ❌ HStack 是 some View, 不是 Text
+HStack { Text("A"); Text("B") }
+    .font(...)
+    .foregroundColor(...)
+    .kerning(1.0)         // 炸: HStack 不是 Text
+
+// ✅ kerning 必须紧贴每个 Text
+HStack {
+    Text("A").kerning(1.0)
+    Text("B").kerning(1.0)
+}
+.font(...)                // .font 是 View modifier 可以挂 HStack
+.foregroundColor(...)
+```
+
+**为什么 .font / .foregroundColor 可以但 .kerning 不行**:
+- `.font(_:)` / `.foregroundColor(_:)` 是 View modifier, 自动传播给 descendant Text
+- `.kerning(_:)` 是 Text method, 返回 Text 不返回 View
+
 ### 1.7 数据文件不能用 CGPoint / CGFloat ⚠️ 高频踩坑
 **犯错频率**: Pace v0.4.0 写 MockData 路径坐标时踩。
 **症状**:
