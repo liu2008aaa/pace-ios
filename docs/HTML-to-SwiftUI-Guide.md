@@ -139,6 +139,32 @@ private func cubicBezier(t: CGFloat, p0: CGPoint, ...) -> CGPoint {
 GeometryReader 内部用多参 `.frame(width:height:alignment:)` 容易触发类型推断超时。
 能用 ZStack alignment 自然对齐就别用 GeometryReader。
 
+### 1.9 自定义 Shape 不配 .stroke() / .fill() 默认渲染成黑块 ⚠️ 视觉错位
+
+**症状**: 自定义 Shape 在视图里"看不见"或显示为黑块, 编译没报错但视觉缺失.
+
+**根因**: SwiftUI Shape 是 protocol, 直接 `MyShape()` 当 View 用时, 默认会
+调用 `.fill(.foreground)`. 在深色背景下 fill 封闭路径区域是黑的, 看起来像
+没渲染.
+
+```swift
+// ❌ Shape 当 View 用没加 stroke/fill
+MyCurveShape()
+    .frame(height: 28)
+    // 默认 fill → 路径封闭区是黑色 → 曲线看不见
+
+// ✅ 显式 stroke 才画线条
+MyCurveShape()
+    .stroke(Theme.accent, lineWidth: 1.2)
+    .frame(height: 28)
+```
+
+**SVG path 翻译时的预防**: `<path stroke="..." stroke-width="..."/>` 必带
+对应 `.stroke()` 调用. 翻完后 grep `MyShape\(\)` 确认每处都有 stroke/fill.
+
+**犯错记录**: v0.4.1 ShareView MiniClassicCurve — HTML SVG 有 stroke 但
+SwiftUI 翻译时漏写 .stroke(), 用户截图发现"经典 mini 缺曲线"才发现 (v0.4.1.3 修)
+
 ### 1.8 .kerning() 是 Text-only 在 iOS 14 ⚠️ 高频踩坑
 **犯错频率**: Pace v0.4.1 ShareView MiniData 底部 HR.
 
