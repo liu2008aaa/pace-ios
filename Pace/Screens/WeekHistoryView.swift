@@ -19,25 +19,30 @@ struct WeekHistoryView: View {
         ZStack {
             Theme.bgApp.ignoresSafeArea()
 
-            // ViewBuilder §1.1: 用 Group 把上半部 9 个子合并, VStack 总 4 子
-            VStack(alignment: .leading, spacing: 0) {
-                Group {
-                    brandStrip
-                    Spacer().frame(height: 22)
-                    weekHeroSection
-                    Spacer().frame(height: 20)
-                    weekRecoveryStrip
-                    Spacer().frame(height: 20)
-                    dotmapSection
-                    Spacer().frame(height: 20)
-                    weekBarsChart
+            // v0.4.2.2: 套 ScrollView — dotmap 自然全宽展开后高度 ~600pt,
+            // 加上 hero/recovery/bars/stats 总高 ~900-1000pt, 12 Pro 屏装不下,
+            // 必须可滚.
+            ScrollView(showsIndicators: false) {
+                // ViewBuilder §1.1: 用 Group 把上半部 9 个子合并, VStack 总 4 子
+                VStack(alignment: .leading, spacing: 0) {
+                    Group {
+                        brandStrip
+                        Spacer().frame(height: 22)
+                        weekHeroSection
+                        Spacer().frame(height: 20)
+                        weekRecoveryStrip
+                        Spacer().frame(height: 20)
+                        dotmapSection
+                        Spacer().frame(height: 20)
+                        weekBarsChart
+                    }
+                    Spacer().frame(height: 14)
+                    bottomStatsRow
+                    Spacer().frame(height: 20)   // 底部留点呼吸不贴 home indicator
                 }
-                Spacer().frame(height: 14)
-                bottomStatsRow
-                Spacer()  // 单一底部弹性
+                .padding(.horizontal, 16)
+                .padding(.bottom, 6)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 6)
         }
     }
 
@@ -377,17 +382,21 @@ private struct DaySegment: View {
 }
 
 // MARK: - DotMap (12 行 × 7 列)
+//
+// v0.4.2.2: 删除 .aspectRatio(7/12, .fit) — 之前那个把 grid 压成窄高条
+// (用户截图发现右半空白). 改用 GeometryReader 算 cellW = (totalW - gaps)/7,
+// 行高 = cellW (圆), 容器高度 = 12*cellW + 11*gap. 全宽铺满, 自然撑高.
+//
 private struct DotMapGrid: View {
     let intensities: [Double]
 
     private let rows: Int = 12
     private let cols: Int = 7
+    private let gap: CGFloat = 4
 
     var body: some View {
         GeometryReader { geo in
-            // 显式 CGFloat 类型 (§1.2)
             let totalW: CGFloat = geo.size.width
-            let gap: CGFloat = 4
             let cellW: CGFloat = (totalW - CGFloat(cols - 1) * gap) / CGFloat(cols)
 
             VStack(spacing: gap) {
@@ -404,7 +413,11 @@ private struct DotMapGrid: View {
                 }
             }
         }
-        .aspectRatio(CGFloat(7.0 / 12.0), contentMode: .fit)
+        // 容器高度 = 12 行 × cellW (≈ 47pt) + 11 个 gap = ~561pt
+        // 用 .frame(height:) 显式撑开, 让 GeometryReader 拿到正确高度
+        // SwiftUI 推断不出来时, 12 Pro 390 屏宽 - 32 padding = 358
+        // cellW = (358 - 24) / 7 ≈ 47.7, 总高 ≈ 47.7*12 + 11*4 ≈ 616pt
+        .frame(height: 616)
     }
 }
 
