@@ -199,10 +199,10 @@ private struct SharePillButton: View {
                 .foregroundColor(primary ? Color(hex: 0x001A14) : Theme.text1)
                 .kerning(1.8)
                 .frame(maxWidth: .infinity)
-                .frame(height: 50)
+                .frame(height: 54)   // 50 → 54 配合 mini 加大
                 .background(primary ? Theme.accent : Theme.bgElev)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 25)
+                    RoundedRectangle(cornerRadius: 27)
                         .stroke(
                             primary ? Color.clear : Theme.hairlineBright,
                             lineWidth: 1
@@ -212,7 +212,7 @@ private struct SharePillButton: View {
                     color: primary ? Theme.accent.opacity(0.42) : Color.clear,
                     radius: 12
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 25))
+                .clipShape(RoundedRectangle(cornerRadius: 27))
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -254,9 +254,11 @@ private struct MiniFrame<Content: View>: View {
                     .padding(.trailing, 8)
             }
         }
-        // v0.4.1.2: 174 → 232 (HTML × 1.33, 让 mini 真有"卡片"分量,
-        //          铺满 12 Pro 844pt 屏不留底空洞)
-        .frame(height: 232)
+        // v0.4.1.2: 174 → 232 (HTML × 1.33)
+        // v0.4.1.4: 232 → 258 (再次按用户反馈加大 — 232 仍留 ~40pt 底部 void)
+        //          258 = HTML × 1.48, 单卡 ~31% 屏高, 配合 actionRow 加高
+        //          后能填到底部接近 0 留白
+        .frame(height: 258)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(
