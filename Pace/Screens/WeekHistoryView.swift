@@ -425,23 +425,44 @@ private struct DotMapCell: View {
     let alpha: Double
     let isLast: Bool
 
+    /// v0.4.2.3: "亮点自呼吸" — alpha > 0.5 的 dot 各自缓慢呼吸,
+    /// 随机相位错峰, 整体像群星各自闪烁 (对照 pace-demo dot-breathe 动画).
+    @State private var breathPhase: Double = 0
+
+    private var shouldBreathe: Bool { alpha > 0.5 }
+
     var body: some View {
         ZStack {
             if alpha < 0.01 {
                 // 空格 — 极淡白
                 Circle().fill(Color.white.opacity(0.04))
             } else {
+                // breath 期间, scale + shadow 同步起伏
+                let baseShadowOpacity: Double = alpha > 0.7 ? 0.5 : 0
+                let baseShadowRadius: Double = alpha > 0.7 ? 3 : 0
                 Circle()
                     .fill(Theme.accent.opacity(alpha))
+                    .scaleEffect(1.0 + 0.12 * CGFloat(breathPhase))
                     .shadow(
-                        color: alpha > 0.7 ? Theme.accent.opacity(0.5) : .clear,
-                        radius: alpha > 0.7 ? 3 : 0
+                        color: Theme.accent.opacity(baseShadowOpacity + 0.45 * breathPhase),
+                        radius: CGFloat(baseShadowRadius + 5 * breathPhase)
                     )
             }
             if isLast {
                 Circle()
                     .stroke(Theme.accent, lineWidth: 1.5)
                     .shadow(color: Theme.accent.opacity(0.6), radius: 4)
+            }
+        }
+        .onAppear {
+            // 随机相位 0-4s 延迟启动, 保证 cells 之间错峰
+            // 不同步呼吸 = 整体活的, 而非 generic 同步动画
+            guard shouldBreathe else { return }
+            let delay: Double = Double.random(in: 0.0...4.0)
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
+                    breathPhase = 1
+                }
             }
         }
     }
