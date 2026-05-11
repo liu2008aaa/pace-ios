@@ -108,6 +108,57 @@ enum MockData {
         static let lastKmDelta = "↓ 末公里 -22s"
     }
 
+    /// Phone 05 分享卡数据
+    enum Share {
+        // 画布元数据
+        static let canvasRatio = "9 : 16"
+        static let canvasSize = "1080×1920"
+
+        // 4 种样式选项
+        enum Style: Int, CaseIterable {
+            case classic = 0
+            case minimal = 1
+            case poster = 2
+            case data = 3
+
+            var cn: String {
+                switch self {
+                case .classic: return "经典"
+                case .minimal: return "极简"
+                case .poster: return "海报"
+                case .data: return "数据"
+                }
+            }
+            var en: String {
+                switch self {
+                case .classic: return "CLASSIC"
+                case .minimal: return "MINIMAL"
+                case .poster: return "POSTER"
+                case .data: return "DATA"
+                }
+            }
+        }
+
+        // 经典样式的 4 列数据
+        static let classicStats: [String] = ["28:14", "5'12", "152", "420"]
+        // 数据样式的 5 km splits (km, pace)
+        static let dataSplits: [(Int, String)] = [
+            (1, "5'34\""),
+            (2, "5'18\""),
+            (3, "5'12\""),
+            (4, "5'08\""),
+            (5, "5'02\""),
+        ]
+        static let dataFooter = ("HR Z3·42%", "152 AVG")
+
+        // 海报副标
+        static let posterTitle = "5.42 KM"
+        static let posterSub = "28:14 · NIGHT RUN"
+
+        // 金句 / 高亮
+        static let classicQuote = "✦ 30 天最强尾段"
+    }
+
     /// Phone 03 跑步进行中数据
     /// v0.3 静态 mock；v0.5 真实 GPS / HKWorkoutSession 后会变成 Store 驱动的实时值
     enum Running {

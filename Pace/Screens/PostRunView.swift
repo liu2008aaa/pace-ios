@@ -28,6 +28,7 @@ struct PostRunView: View {
     @Environment(\.presentationMode) private var presentationMode
 
     @State private var endPulse = false  // 路线终点呼吸标记
+    @State private var showShare = false  // v0.4.1: 分享按钮 → ShareView
 
     var body: some View {
         ZStack {
@@ -64,6 +65,10 @@ struct PostRunView: View {
             withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
                 endPulse = true
             }
+        }
+        // v0.4.1: 分享按钮 → ShareView 全屏接管
+        .fullScreenCover(isPresented: $showShare) {
+            ShareView()
         }
     }
 
@@ -240,7 +245,7 @@ struct PostRunView: View {
             // 分享 — primary 实心绿
             Button(action: {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                // v0.4.x: 切到 Phone 05 分享卡
+                showShare = true   // → Phone 05 ShareView
             }) {
                 Text("分享")
                     .font(PaceFont.cn(size: 16, weight: .bold))
