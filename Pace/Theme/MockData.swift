@@ -108,6 +108,64 @@ enum MockData {
         static let lastKmDelta = "↓ 末公里 -22s"
     }
 
+    /// Phone 06 周历史数据
+    enum WeekHistory {
+        // 本周 hero
+        static let weekDistanceKm: Double = 38.4
+        static let weekTrendStr = "↑12%"
+        static let weekRuns: Int = 4
+        static let weekTimeStr = "3:21'42\""
+        static let weekAvgPace = "5'18\""
+
+        // 本周恢复 (7 天: 周五~周四, 周四是 today)
+        enum RecoveryState { case good, ok, bad }
+        static let recoveryAvg: Int = 74
+        static let recoveryDays: [(label: String, value: Int, state: RecoveryState, today: Bool)] = [
+            ("五", 76, .good, false),
+            ("六", 80, .good, false),
+            ("日", 72, .good, false),
+            ("一", 56, .ok,   false),
+            ("二", 74, .good, false),
+            ("三", 79, .good, false),
+            ("四", 82, .good, true),
+        ]
+
+        // 活动 84 天 dotmap (12 行 × 7 列, 0-1 intensity)
+        // 静态 mock — 真实版会从 HKWorkoutSession 历史读
+        static let dotmapDays: [Double] = {
+            // 简化的 84 个 intensity (越近越亮的趋势, 部分零值)
+            var arr: [Double] = []
+            let pattern: [Double] = [
+                // row 0 (最早)
+                0.18, 0.35, 0.0, 0.55, 0.0, 0.0, 0.40,
+                0.0, 0.42, 0.55, 0.0, 0.0, 0.35, 0.50,
+                0.50, 0.0, 0.42, 0.60, 0.0, 0.0, 0.55,
+                0.0, 0.45, 0.0, 0.60, 0.40, 0.0, 0.55,
+                0.55, 0.0, 0.50, 0.0, 0.65, 0.0, 0.45,
+                0.60, 0.50, 0.0, 0.55, 0.65, 0.0, 0.42,
+                0.0, 0.60, 0.55, 0.65, 0.0, 0.55, 0.60,
+                0.55, 0.0, 0.65, 0.55, 0.0, 0.55, 0.70,
+                0.60, 0.65, 0.55, 0.0, 0.65, 0.55, 0.70,
+                0.0, 0.65, 0.70, 0.0, 0.75, 0.60, 0.65,
+                0.70, 0.55, 0.0, 0.80, 0.70, 0.65, 0.85,
+                // row 11 (最近一周, 末位为今日)
+                0.85, 0.65, 0.75, 0.55, 0.60, 0.0, 1.0,
+            ]
+            arr = pattern
+            return arr
+        }()
+
+        // 每周公里 4 周柱图 (label, km, isCurrent)
+        static let weekBars: [(label: String, km: Double, current: Bool)] = [
+            ("W14", 26.1, false),
+            ("W15", 31.0, false),
+            ("W16", 34.2, false),
+            ("W17", 38.4, true),
+        ]
+
+        static let streakDays: Int = 12
+    }
+
     /// Phone 05 分享卡数据
     enum Share {
         // 画布元数据
