@@ -15,35 +15,73 @@ import SwiftUI
 struct WeekHistoryView: View {
     @Environment(\.presentationMode) private var presentationMode
 
+    /// v0.4.3: 加 segment 切换支持 week / month / year (Phone 06 + 07 + placeholder)
+    enum Segment { case week, month, year }
+    @State private var segment: Segment = .week
+
     var body: some View {
         ZStack {
             Theme.bgApp.ignoresSafeArea()
 
-            // v0.4.2.2: 套 ScrollView — dotmap 自然全宽展开后高度 ~600pt,
-            // 加上 hero/recovery/bars/stats 总高 ~900-1000pt, 12 Pro 屏装不下,
-            // 必须可滚.
+            // ScrollView 套全屏内容 — dotmap (week) / calendar+trend (month) 都
+            // 可能比 12 Pro 屏高, 统一可滚
             ScrollView(showsIndicators: false) {
-                // ViewBuilder §1.1: 用 Group 把上半部 9 个子合并, VStack 总 4 子
                 VStack(alignment: .leading, spacing: 0) {
-                    Group {
-                        brandStrip
-                        Spacer().frame(height: 22)
-                        weekHeroSection
-                        Spacer().frame(height: 20)
-                        weekRecoveryStrip
-                        Spacer().frame(height: 20)
-                        dotmapSection
-                        Spacer().frame(height: 20)
-                        weekBarsChart
-                    }
-                    Spacer().frame(height: 14)
-                    bottomStatsRow
-                    Spacer().frame(height: 20)   // 底部留点呼吸不贴 home indicator
+                    brandStrip
+                    Spacer().frame(height: 22)
+                    segmentContent
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 6)
             }
         }
+    }
+
+    @ViewBuilder
+    private var segmentContent: some View {
+        switch segment {
+        case .week:  weekContent
+        case .month: monthContent
+        case .year:  yearPlaceholder
+        }
+    }
+
+    // MARK: - Week 内容 (原 Phone 06 layout)
+    private var weekContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Group {
+                weekHeroSection
+                Spacer().frame(height: 20)
+                weekRecoveryStrip
+                Spacer().frame(height: 20)
+                dotmapSection
+                Spacer().frame(height: 20)
+                weekBarsChart
+            }
+            Spacer().frame(height: 14)
+            bottomStatsRow
+            Spacer().frame(height: 20)
+        }
+    }
+
+    // MARK: - Year 占位 (v0.5+ 实现)
+    private var yearPlaceholder: some View {
+        VStack(spacing: 12) {
+            Spacer().frame(height: 80)
+            Text("✦")
+                .font(.system(size: 28))
+                .foregroundColor(Theme.accent.opacity(0.4))
+            Text("年度统计")
+                .font(PaceFont.cn(size: 14, weight: .medium))
+                .foregroundColor(Theme.text2)
+                .kerning(2.4)
+            Text("即将上线 · COMING SOON")
+                .font(PaceFont.mono(size: 9, weight: .medium))
+                .foregroundColor(Theme.text4)
+                .kerning(2.0)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - 顶部条 (← 返回 + 历史 + 周/月/年 + ✦ chip)
@@ -74,11 +112,11 @@ struct WeekHistoryView: View {
 
             Spacer()
 
-            // 周/月/年 分段控件 (active = 周)
+            // 周/月/年 分段控件 (v0.4.3: 可点击切换)
             HStack(spacing: 0) {
-                segmentTab("周", active: true)
-                segmentTab("月", active: false)
-                segmentTab("年", active: false)
+                segmentTab("周", value: .week)
+                segmentTab("月", value: .month)
+                segmentTab("年", value: .year)
             }
             .padding(2)
             .background(Theme.bgElev)
@@ -107,16 +145,25 @@ struct WeekHistoryView: View {
     }
 
     @ViewBuilder
-    private func segmentTab(_ label: String, active: Bool) -> some View {
-        Text(label)
-            .font(PaceFont.cn(size: 11, weight: active ? .semibold : .regular))
-            .foregroundColor(active ? Theme.accent : Theme.text3)
-            .kerning(1.8)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 5)
-            .background(active ? Theme.bgCanvas : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .shadow(color: active ? Theme.accent.opacity(0.20) : .clear, radius: 6)
+    private func segmentTab(_ label: String, value: Segment) -> some View {
+        let active: Bool = (segment == value)
+        Button(action: {
+            UISelectionFeedbackGenerator().selectionChanged()
+            withAnimation(.easeOut(duration: 0.18)) {
+                segment = value
+            }
+        }) {
+            Text(label)
+                .font(PaceFont.cn(size: 11, weight: active ? .semibold : .regular))
+                .foregroundColor(active ? Theme.accent : Theme.text3)
+                .kerning(1.8)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(active ? Theme.bgCanvas : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .shadow(color: active ? Theme.accent.opacity(0.20) : .clear, radius: 6)
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 
     // MARK: - 本周 hero (38.4 公里 + ↑12% + 副信息行)
@@ -522,6 +569,418 @@ private struct WeekBarsView: View {
                         .frame(maxWidth: .infinity)
                     }
                 }
+            }
+        }
+    }
+}
+
+// MARK: ============================================================
+// MARK: Month 内容 (Phone 07 月度统计)
+// MARK: ============================================================
+//
+// 对照 pace-demo/index.html#L3087-L3219.
+// 内容: 月份导航 + 月度跑量 hero + 进度环 + 31 天日历 heatmap +
+//      6 个月趋势折线 + PB 列表 (5K / 10K / 半马)
+//
+
+extension WeekHistoryView {
+    var monthContent: some View {
+        // ViewBuilder §1.1: 10 子临界, Group 包前 9 个稳妥
+        VStack(alignment: .leading, spacing: 0) {
+            Group {
+                monthNavRow
+                Spacer().frame(height: 18)
+                monthHero
+                Spacer().frame(height: 22)
+                calendarSection
+                Spacer().frame(height: 20)
+                sixMonthTrendSection
+                Spacer().frame(height: 16)
+                pbSection
+            }
+            Spacer().frame(height: 20)
+        }
+    }
+
+    // 月份导航行: ‹ 2026 · 5月 ›  右侧 MAY · 2026
+    var monthNavRow: some View {
+        HStack {
+            HStack(spacing: 8) {
+                Text("‹")
+                    .font(PaceFont.cn(size: 14, weight: .medium))
+                    .foregroundColor(Theme.text4)
+                    .kerning(1.6)
+                Text(MockData.MonthlyStats.yearMonthCn)
+                    .font(PaceFont.cn(size: 12, weight: .semibold))
+                    .foregroundColor(Theme.text1)
+                    .kerning(2.4)
+                Text("›")
+                    .font(PaceFont.cn(size: 14, weight: .medium))
+                    .foregroundColor(Theme.text4)
+                    .kerning(1.6)
+            }
+            Spacer()
+            Text(MockData.MonthlyStats.yearMonthEn)
+                .font(PaceFont.mono(size: 10, weight: .medium))
+                .foregroundColor(Theme.text3)
+                .kerning(2.4)
+        }
+    }
+
+    // 月度跑量 hero: 138.5 km + ↑18% chip + 78pt 进度环
+    var monthHero: some View {
+        HStack(alignment: .center, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("月度跑量")
+                    .font(PaceFont.cn(size: 11, weight: .medium))
+                    .foregroundColor(Theme.text3)
+                    .kerning(3.4)
+                    .padding(.bottom, 4)
+
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                    Text(String(format: "%.1f", MockData.MonthlyStats.distanceKm))
+                        .font(.system(size: 54, weight: .bold, design: .monospaced))
+                        .foregroundColor(Theme.text1)
+                        .kerning(-2.4)
+                    Text("km")
+                        .font(PaceFont.cn(size: 14, weight: .medium))
+                        .foregroundColor(Theme.text3)
+                        .kerning(1.2)
+                }
+
+                // ↑18% vs 4月 chip
+                HStack(spacing: 4) {
+                    Text(MockData.MonthlyStats.trendStr)
+                        .font(PaceFont.mono(size: 11, weight: .semibold))
+                        .foregroundColor(Theme.accent)
+                    Text(MockData.MonthlyStats.trendCompare)
+                        .font(PaceFont.cn(size: 10, weight: .medium))
+                        .foregroundColor(Theme.text3)
+                        .kerning(0.6)
+                }
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
+                .background(Theme.accent.opacity(0.10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Theme.accent.opacity(0.42), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(.top, 4)
+            }
+
+            Spacer()
+
+            // 进度环 78pt 显示 progress %
+            MonthRingProgress(
+                progress: MockData.MonthlyStats.progress,
+                goalKm: MockData.MonthlyStats.goalKm
+            )
+            .frame(width: 96, height: 96)
+        }
+    }
+
+    // 日历 heatmap 区
+    var calendarSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("日历")
+                    .font(PaceFont.cn(size: 11, weight: .medium))
+                    .foregroundColor(Theme.text3)
+                    .kerning(2.6)
+                Spacer()
+                Text("M  T  W  T  F  S  S")
+                    .font(PaceFont.mono(size: 9, weight: .medium))
+                    .foregroundColor(Theme.text4)
+                    .kerning(2.0)
+            }
+            CalendarHeatmap(
+                daysInMonth: MockData.MonthlyStats.daysInMonth,
+                startCol: MockData.MonthlyStats.startCol,
+                today: MockData.MonthlyStats.today,
+                intensities: MockData.MonthlyStats.runDayIntensities
+            )
+        }
+    }
+
+    // 6 个月趋势折线
+    var sixMonthTrendSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("6 个月趋势")
+                    .font(PaceFont.cn(size: 11, weight: .medium))
+                    .foregroundColor(Theme.text3)
+                    .kerning(2.6)
+                Spacer()
+                Text(MockData.MonthlyStats.trendDeltaStr)
+                    .font(PaceFont.mono(size: 11, weight: .semibold))
+                    .foregroundColor(Theme.accent)
+                    .kerning(0.6)
+            }
+            SixMonthTrend(
+                pointsY: MockData.MonthlyStats.trendPointsY,
+                labels: MockData.MonthlyStats.trendLabels
+            )
+            .frame(height: 72)
+        }
+    }
+
+    // PB 列表 (5K / 10K / 半马)
+    var pbSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("个人最佳 · PB")
+                .font(PaceFont.cn(size: 11, weight: .medium))
+                .foregroundColor(Theme.text3)
+                .kerning(2.6)
+
+            VStack(spacing: 0) {
+                ForEach(0..<MockData.MonthlyStats.pbs.count, id: \.self) { i in
+                    let row = MockData.MonthlyStats.pbs[i]
+                    HStack {
+                        Text(row.distance)
+                            .font(PaceFont.cn(size: 13, weight: .medium))
+                            .foregroundColor(Theme.text1)
+                            .kerning(0.6)
+                        Spacer()
+                        Text(row.time)
+                            .font(PaceFont.mono(size: 15, weight: .bold))
+                            .foregroundColor(row.isPb ? Theme.accent : Theme.text1)
+                            .kerning(-0.3)
+                        Spacer()
+                        Text(row.note)
+                            .font(PaceFont.mono(size: 10, weight: .medium))
+                            .foregroundColor(row.isPb ? Theme.text3 : Theme.text4)
+                            .kerning(1.0)
+                            .frame(minWidth: 56, alignment: .trailing)
+                    }
+                    .padding(.vertical, 9)
+                    .padding(.horizontal, 12)
+                    .overlay(
+                        Rectangle()
+                            .fill(Theme.hairline)
+                            .frame(height: 0.5),
+                        alignment: .bottom
+                    )
+                    .opacity(i == MockData.MonthlyStats.pbs.count - 1 ? 1 : 1)
+                }
+            }
+            .background(Theme.bgCard)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Theme.hairlineBright, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+}
+
+// MARK: - 进度环 (96pt 大圈, accent → accentBright 渐变, 中心 % + /goalKm)
+private struct MonthRingProgress: View {
+    let progress: Double   // 0..1
+    let goalKm: Double
+
+    var body: some View {
+        ZStack {
+            // 底圈
+            Circle()
+                .stroke(Color.white.opacity(0.06), lineWidth: 5)
+
+            // 进度环
+            Circle()
+                .trim(from: 0, to: CGFloat(min(1.0, max(0.0, progress))))
+                .stroke(
+                    LinearGradient(
+                        gradient: Gradient(colors: [Theme.accent, Theme.accentBright]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .shadow(color: Theme.accent.opacity(0.35), radius: 8)
+
+            // 中心: 69% + /200km
+            VStack(spacing: 2) {
+                Text("\(Int(round(progress * 100)))%")
+                    .font(PaceFont.mono(size: 18, weight: .bold))
+                    .foregroundColor(Theme.text1)
+                    .kerning(-0.4)
+                Text("/\(Int(goalKm))km")
+                    .font(PaceFont.mono(size: 8, weight: .medium))
+                    .foregroundColor(Theme.text3)
+                    .kerning(1.0)
+            }
+        }
+    }
+}
+
+// MARK: - 日历 heatmap (31 天, 5 行 × 7 列, 周一开始)
+//
+// 数据驱动: startCol 个 empty cells, 然后 1-31 天.
+// 5/1 是周五 → startCol = 4 → 第一行前 4 cells 为空, 第一行从 col 4 开始放 day 1-3.
+//
+private struct CalendarHeatmap: View {
+    let daysInMonth: Int
+    let startCol: Int
+    let today: Int
+    let intensities: [Int: Double]
+
+    private let cols: Int = 7
+    private let gap: CGFloat = 3
+
+    var body: some View {
+        GeometryReader { geo in
+            let totalW: CGFloat = geo.size.width
+            let cellSize: CGFloat = (totalW - CGFloat(cols - 1) * gap) / CGFloat(cols)
+            let totalCells: Int = startCol + daysInMonth
+            let rows: Int = Int(ceil(Double(totalCells) / Double(cols)))
+
+            VStack(spacing: gap) {
+                ForEach(0..<rows, id: \.self) { r in
+                    HStack(spacing: gap) {
+                        ForEach(0..<cols, id: \.self) { c in
+                            let cellIdx: Int = r * cols + c
+                            let day: Int = cellIdx - startCol + 1
+                            CalendarCell(
+                                day: day,
+                                inMonth: (day >= 1 && day <= daysInMonth),
+                                isToday: (day == today),
+                                isFuture: (day > today),
+                                intensity: intensities[day] ?? 0
+                            )
+                            .frame(width: cellSize, height: cellSize)
+                        }
+                    }
+                }
+            }
+        }
+        // 5 行 × cellSize + 4 gap. cellSize ≈ (358-18)/7 ≈ 48pt → 高 ~252pt
+        .frame(height: 5 * 48 + 4 * 3)
+    }
+}
+
+private struct CalendarCell: View {
+    let day: Int
+    let inMonth: Bool
+    let isToday: Bool
+    let isFuture: Bool
+    let intensity: Double  // 0 表示没跑 / 没数据
+
+    private var bg: Color {
+        if !inMonth { return Color.white.opacity(0.02) }
+        if isFuture { return .clear }
+        if intensity > 0 { return Theme.accent.opacity(intensity) }
+        return Color.white.opacity(0.02)
+    }
+
+    private var fg: Color {
+        if !inMonth { return .clear }
+        if isFuture { return Theme.text4 }
+        if intensity > 0 { return .white }
+        return Theme.text3
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 4).fill(bg)
+            if inMonth {
+                Text("\(day)")
+                    .font(PaceFont.mono(size: 9, weight: .medium))
+                    .foregroundColor(fg)
+                    .kerning(-0.2)
+            }
+            // today 高亮 inset 边框
+            if isToday {
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(Theme.accent, lineWidth: 1.5)
+                    .shadow(color: Theme.accent.opacity(0.5), radius: 4)
+            }
+        }
+    }
+}
+
+// MARK: - 6 个月趋势折线 (viewBox 280×52, 末点高亮 + 呼吸)
+private struct SixMonthTrend: View {
+    let pointsY: [Double]   // viewBox y 坐标, 越小越靠上 = 月度跑量越多
+    let labels: [String]
+
+    @State private var endPulse: Bool = false
+
+    private let pointsX: [Double] = [12, 60, 108, 156, 204, 252]   // viewBox 280 等分
+
+    var body: some View {
+        GeometryReader { geo in
+            // 显式 CGFloat 类型避免 Swift 5.4 推断歧义
+            let scaleX: CGFloat = geo.size.width / 280
+            let scaleY: CGFloat = geo.size.height / 52
+            let lastIdx: Int = pointsY.count - 1
+
+            ZStack {
+                // 区域填充
+                Path { p in
+                    p.move(to: CGPoint(x: CGFloat(pointsX[0]) * scaleX, y: CGFloat(pointsY[0]) * scaleY))
+                    for i in 1..<pointsY.count {
+                        p.addLine(to: CGPoint(x: CGFloat(pointsX[i]) * scaleX, y: CGFloat(pointsY[i]) * scaleY))
+                    }
+                    p.addLine(to: CGPoint(x: CGFloat(pointsX[lastIdx]) * scaleX, y: 48 * scaleY))
+                    p.addLine(to: CGPoint(x: CGFloat(pointsX[0]) * scaleX, y: 48 * scaleY))
+                    p.closeSubpath()
+                }
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Theme.accent.opacity(0.35),
+                            Theme.accent.opacity(0.0),
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+
+                // 折线
+                Path { p in
+                    p.move(to: CGPoint(x: CGFloat(pointsX[0]) * scaleX, y: CGFloat(pointsY[0]) * scaleY))
+                    for i in 1..<pointsY.count {
+                        p.addLine(to: CGPoint(x: CGFloat(pointsX[i]) * scaleX, y: CGFloat(pointsY[i]) * scaleY))
+                    }
+                }
+                .stroke(Theme.accent, style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
+                .shadow(color: Theme.accent.opacity(0.5), radius: 4, y: 2)
+
+                // 5 个普通节点 (空心 dot)
+                ForEach(0..<lastIdx, id: \.self) { i in
+                    Circle()
+                        .fill(Theme.bgCard)
+                        .frame(width: 5, height: 5)
+                        .overlay(Circle().stroke(Theme.accent, lineWidth: 1.2))
+                        .position(x: CGFloat(pointsX[i]) * scaleX, y: CGFloat(pointsY[i]) * scaleY)
+                }
+
+                // 末点突出 (实心 + 呼吸外环)
+                ZStack {
+                    Circle()
+                        .stroke(Theme.accent.opacity(endPulse ? 0.6 : 0.3), lineWidth: 0.7)
+                        .frame(width: endPulse ? 16 : 12, height: endPulse ? 16 : 12)
+                    Circle()
+                        .fill(Theme.accentBright)
+                        .frame(width: 7, height: 7)
+                        .shadow(color: Theme.accent.opacity(0.6), radius: 4)
+                }
+                .position(x: CGFloat(pointsX[lastIdx]) * scaleX, y: CGFloat(pointsY[lastIdx]) * scaleY)
+
+                // x 轴标签 12 / 1 / 2 / 3 / 4 / 5
+                ForEach(0..<labels.count, id: \.self) { i in
+                    Text(labels[i])
+                        .font(PaceFont.mono(size: 9, weight: i == lastIdx ? .bold : .medium))
+                        .foregroundColor(i == lastIdx ? Theme.accent : Theme.text4)
+                        .kerning(0.5)
+                        .position(x: CGFloat(pointsX[i]) * scaleX, y: 50 * scaleY)
+                }
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                endPulse = true
             }
         }
     }

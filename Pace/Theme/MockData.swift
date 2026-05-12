@@ -108,6 +108,48 @@ enum MockData {
         static let lastKmDelta = "↓ 末公里 -22s"
     }
 
+    /// Phone 07 月度统计数据
+    enum MonthlyStats {
+        // 月份元数据
+        static let yearMonthCn = "2026 · 5月"
+        static let yearMonthEn = "MAY · 2026"
+
+        // 月度跑量 hero
+        static let distanceKm: Double = 138.5
+        static let trendStr = "↑18%"
+        static let trendCompare = "vs 4月"
+        static let goalKm: Double = 200
+        // 进度 0..1
+        static let progress: Double = 0.69  // 138.5 / 200
+
+        // 日历 (2026 年 5 月: 31 天, 5/1 是周五)
+        static let daysInMonth: Int = 31
+        // 周一 = col 0, 周日 = col 6. 5/1 是周五 → col 4
+        static let startCol: Int = 4
+        static let today: Int = 7
+        // 18 个跑步日 + 每天 intensity 0..1 (alpha)
+        static let runDayIntensities: [Int: Double] = [
+            1: 0.35, 2: 0.45, 3: 0.85, 5: 0.55, 7: 1.0,
+            8: 0.40, 10: 0.50, 12: 0.70, 14: 0.60, 15: 0.45,
+            17: 0.55, 19: 0.70, 21: 0.50, 22: 0.85, 24: 0.60,
+            26: 0.50, 28: 0.65, 30: 0.55,
+        ]
+
+        // 6 个月趋势 (viewBox 280×52, Y 越小越靠上 = 月度跑量越多)
+        // 数据点: 12月 → 1月 → 2月 → 3月 → 4月 → 5月
+        // MockData 只 Foundation, 不用 CGFloat — view 端转
+        static let trendPointsY: [Double] = [38, 32, 30, 26, 22, 12]
+        static let trendLabels: [String] = ["12", "1", "2", "3", "4", "5"]
+        static let trendDeltaStr = "↗ +24%"
+
+        // 个人最佳 (distance, time, noteOrDate, 是否本月 PB)
+        static let pbs: [(distance: String, time: String, note: String, isPb: Bool)] = [
+            ("5K",   "21'42\"", "↑ 5月3日", true),
+            ("10K",  "45'18\"", "─",       false),
+            ("半马", "1:54:32", "↑ 5月7日", true),
+        ]
+    }
+
     /// Phone 06 周历史数据
     enum WeekHistory {
         // 本周 hero
