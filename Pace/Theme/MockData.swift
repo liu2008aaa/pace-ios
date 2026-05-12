@@ -108,6 +108,50 @@ enum MockData {
         static let lastKmDelta = "↓ 末公里 -22s"
     }
 
+    /// Phone 11 状态详情 (Recovery Detail) 数据
+    enum RecoveryDetail {
+        static let dateStr = "5·07 · MAY"
+        static let recoveryScore: Int = 82
+        static let recoveryTrend = "↑ 6"
+        static let recoveryStatus = "良好 · GOOD"
+        static let weekTrendStr = "↗ 本周 +8"
+
+        // 7 天恢复值 (viewBox 252×40 Y 坐标)
+        static let weekPointsY: [Double] = [26, 22, 28, 32, 24, 18, 14]
+        // 每天 dot 颜色 (accent / gold)
+        static let weekDotIsAccent: [Bool] = [true, true, false, false, true, true, true]
+        static let weekLabels: [String] = ["五", "六", "日", "一", "二", "三", "四"]
+
+        // 成因分解
+        struct Contrib {
+            let name: String
+            let detail: String
+            let ratio: Double   // 0..1
+            let value: Int      // 正负
+        }
+        static let contribs: [Contrib] = [
+            Contrib(name: "HRV",      detail: "心率变异",       ratio: 0.75, value: 12),
+            Contrib(name: "RHR",      detail: "静息心率",       ratio: 0.50, value: 8),
+            Contrib(name: "睡眠",     detail: "7h 24m",        ratio: 0.26, value: 4),
+            Contrib(name: "昨日训练", detail: "strain 13.5",   ratio: 0.14, value: -2),
+        ]
+        static let baseline: Int = 60
+
+        // AI 解释 (Text+Text+Text 拼)
+        static let aiBefore = "HRV 本周稳步上升，加上昨晚 "
+        static let aiMid1 = "7h24m"
+        static let aiBetween = " 高质量睡眠，今晨恢复良好。但 7 天累积负荷仍偏高，建议"
+        static let aiMid2 = "轻松跑"
+        static let aiAfter = "而非高强度。"
+
+        // 推荐 chips
+        static let recoOptions: [(String, Bool)] = [
+            ("轻松跑 5km", true),
+            ("节奏跑", false),
+            ("休息", false),
+        ]
+    }
+
     /// Phone 10 设置数据
     enum Settings {
         static let userName = "刘宇"
