@@ -108,6 +108,22 @@ enum MockData {
         static let lastKmDelta = "↓ 末公里 -22s"
     }
 
+    /// Phone 13 首次启动 (Empty Home) 数据
+    enum FirstRun {
+        static let welcome = "欢迎，刘宇"
+        static let weather = "上海 · 晴 · 18°C"
+        static let weatherTag = "适合跑步"
+
+        static let dialEmptyMetas: [String] = ["需 Watch ›", "首跑解锁", "授权数据 ›"]
+        static let dialLabels: [String] = ["状态", "负荷", "睡眠"]
+
+        static let aiWelcome = "欢迎使用 Pace。完成首次跑步后，我会开始了解你的身体节奏。"
+
+        static let firstRunHint1 = "尚未跑步"
+        static let firstRunHint2 = "点击出发开启首次记录"
+        static let buttonEnLabel = "FIRST RUN"
+    }
+
     /// Phone 11 状态详情 (Recovery Detail) 数据
     enum RecoveryDetail {
         static let dateStr = "5·07 · MAY"
