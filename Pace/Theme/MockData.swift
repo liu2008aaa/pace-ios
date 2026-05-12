@@ -108,6 +108,29 @@ enum MockData {
         static let lastKmDelta = "↓ 末公里 -22s"
     }
 
+    /// Phone 16 路线详情数据
+    enum RouteDetail {
+        static let dateStr = "5·07 · 5.42 KM"
+        static let distanceKm: Double = 5.42
+        static let durationStr = "28:14"
+        static let avgPace = "5'12\""
+
+        // 高度变化 (viewBox 252×44 Y 坐标)
+        static let elevationY: [Double] = [38, 32, 22, 12, 26, 38, 40]
+        static let elevationUp = "+28m"
+        static let elevationDown = "−25m"
+        static let peakIdx: Int = 3  // 第 4 点是 peak
+
+        // KM splits (label, pace, paceTier 0-4)
+        static let splits: [(label: String, pace: String, tier: Int)] = [
+            ("KM 1",   "5'34\"", 0),
+            ("KM 2",   "5'18\"", 1),
+            ("KM 3",   "5'12\"", 2),
+            ("KM 4",   "5'08\"", 3),
+            ("KM 5 ★", "5'02\"", 4),  // 最快
+        ]
+    }
+
     /// Phone 15 锁屏推送 (Lock Screen) 数据
     enum LockScreen {
         static let time = "22:14"
