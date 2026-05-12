@@ -108,6 +108,27 @@ enum MockData {
         static let lastKmDelta = "↓ 末公里 -22s"
     }
 
+    /// Phone 15 锁屏推送 (Lock Screen) 数据
+    enum LockScreen {
+        static let time = "22:14"
+        static let date = "5 月 7 日 · 周四"
+
+        // 通知卡内容
+        static let notifTitle = "今日身体状态卡 · 已生成"
+        static let notifTimestamp = "现在"
+
+        // 3 指标
+        static let metricReadiness: Int = 82
+        static let metricReadinessDelta = "↑6"
+        static let metricStrain: Double = 14.2
+        static let metricSleep: Int = 87
+
+        // sparkline 7 点 Y 坐标 (viewBox 252×22, 越小越靠上)
+        static let sparklineY: [Double] = [14, 12, 16, 18, 13, 9, 6]
+
+        static let aiLine = "今晚睡眠充足，恢复良好，建议明早可以做一次节奏跑。"
+    }
+
     /// Phone 13 首次启动 (Empty Home) 数据
     enum FirstRun {
         static let welcome = "欢迎，刘宇"
