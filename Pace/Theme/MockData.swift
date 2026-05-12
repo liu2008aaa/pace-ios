@@ -374,6 +374,64 @@ enum MockData {
         ]
     }
 
+    /// Phone 12 暂停状态 (Paused) — v0.4.12
+    /// 对照 pace-demo/index.html#L4103-L4210
+    enum Paused {
+        // 顶部 strip
+        static let activityType = "户外跑"
+        static let pausedChip = "已暂停"
+        static let weather = "11°C"
+
+        // hero (大号 last pace)
+        static let pausedKickLabel = "已暂停"
+        static let lastPace = "5'24\""
+        static let lastPaceCaption = "LAST PACE · 静止中"
+
+        // frozen stats
+        static let distanceKm: Double = 3.42
+        static let elapsedTime = "18:32"
+        static let distanceLabel = "距离"
+        static let timeLabel = "时长"
+
+        // HR 心率 5 区段 marker 位置 (左边为 0, 右边为 1)
+        static let hrZoneLabel = "Z2 · 静息中"
+        static let hrMarkerPct: Double = 0.32
+
+        // dynamic island (preview only)
+        static let islandTime = "18:32"
+
+        // confirm hint
+        static let confirmHint = "点击「结束」需二次确认 · TAP TO CONFIRM"
+    }
+
+    /// Phone 14 GPS 搜索中 (GPS Searching) — v0.4.12
+    /// 对照 pace-demo/index.html#L4371-L4464
+    enum GpsSearch {
+        // brand strip
+        static let title = "准备开跑"
+        static let subtitle = "PRE-FLIGHT · WAITING"
+
+        // spinner
+        static let searchingHeader = "SEARCHING GPS · 12 秒"
+        static let satFound: Int = 4
+        static let satNeeded: Int = 6
+
+        // checklist 行: (label, value, state)
+        // state ∈ "ok" / "wait" / "alert"  (MockData 保持 String, View 端 switch)
+        static let checklist: [(label: String, value: String, state: String)] = [
+            ("GPS",  "搜索中 · 4 / 6 颗", "wait"),
+            ("心率", "76 BPM",            "ok"),
+            ("音乐", "未检测到",          "alert"),
+            ("语音", "已就绪",            "ok"),
+        ]
+
+        // 按钮
+        static let leftBtnLabel  = "移到空旷处"
+        static let rightBtnLabel = "继续 (精度低)"
+
+        static let hint = "树荫 / 室内 / 高楼附近 GPS 较弱"
+    }
+
     /// v0.4.11 年度统计 (WeekHistoryView year tab) — 无 HTML demo 参照, 自设计
     /// 视觉语法继承 MonthlyStats: hero / heatmap / 12 月 trend / 年度 PB
     enum YearHistory {
