@@ -374,6 +374,54 @@ enum MockData {
         ]
     }
 
+    /// v0.4.11 年度统计 (WeekHistoryView year tab) — 无 HTML demo 参照, 自设计
+    /// 视觉语法继承 MonthlyStats: hero / heatmap / 12 月 trend / 年度 PB
+    enum YearHistory {
+        // 年份元数据
+        static let yearCn = "2026"
+        static let yearEn = "YEAR · 2026"
+
+        // 年度 hero
+        static let yearKm: Double = 142.6
+        static let yearTrendStr = "↑18%"
+        static let yearTrendCompare = "vs 2025"
+        static let runDays: Int = 28
+        static let runDaysLabel = "跑步天数"
+        static let avgPaceStr = "6'12\""
+        static let avgPaceLabel = "平均配速"
+
+        // 12 月公里数 (1月..12月)
+        // 1-5 月已发生, 6-12 月未到 (= 0)
+        static let monthlyKm: [Double] = [
+            18.5, 22.4, 26.8, 28.4, 46.5,
+            0, 0, 0, 0, 0, 0, 0,
+        ]
+        static let currentMonth: Int = 5   // 1-indexed
+        static let monthLabelsEn: [String] = [
+            "J", "F", "M", "A", "M", "J",
+            "J", "A", "S", "O", "N", "D",
+        ]
+        // heatmap 最高值 (用来 normalize alpha)
+        static let monthlyKmMax: Double = 50.0
+
+        // 12 月 trend sparkline (viewBox 280×52, Y 越小=月里程越多)
+        // pointsX = [11, 35, 59, 83, 107, 131, 155, 179, 203, 227, 251, 269]
+        // 5 月之前: 实线; 5 月之后: 灰虚线 (基线 22 占位)
+        static let trendPointsY: [Double] = [
+            38, 34, 30, 28, 12,   // 1-5 月 (实际)
+            22, 22, 22, 22, 22, 22, 22,   // 6-12 月 基线占位
+        ]
+        // splitIdx = currentMonth-1 = 4 (实线最后一点的 index)
+        static let trendDeltaStr = "↗ +24%"
+
+        // 年度 PB (distance, time, delta vs 去年, 是否年度新 PB)
+        static let yearPBs: [(distance: String, time: String, delta: String, isPb: Bool)] = [
+            ("5K",   "21'42\"",  "-42s",   true),
+            ("10K",  "45'18\"",  "NEW",    true),
+            ("半马", "1:54:32",  "-3'20\"", true),
+        ]
+    }
+
     /// Phone 06 周历史数据
     enum WeekHistory {
         // 本周 hero

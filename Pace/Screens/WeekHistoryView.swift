@@ -42,7 +42,7 @@ struct WeekHistoryView: View {
         switch segment {
         case .week:  weekContent
         case .month: monthContent
-        case .year:  yearPlaceholder
+        case .year:  yearContent  // v0.4.11: 从 placeholder → 真实现
         }
     }
 
@@ -62,26 +62,6 @@ struct WeekHistoryView: View {
             bottomStatsRow
             Spacer().frame(height: 20)
         }
-    }
-
-    // MARK: - Year 占位 (v0.5+ 实现)
-    private var yearPlaceholder: some View {
-        VStack(spacing: 12) {
-            Spacer().frame(height: 80)
-            Text("✦")
-                .font(.system(size: 28))
-                .foregroundColor(Theme.accent.opacity(0.4))
-            Text("年度统计")
-                .font(PaceFont.cn(size: 14, weight: .medium))
-                .foregroundColor(Theme.text2)
-                .kerning(2.4)
-            Text("即将上线 · COMING SOON")
-                .font(PaceFont.mono(size: 9, weight: .medium))
-                .foregroundColor(Theme.text4)
-                .kerning(2.0)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - 顶部条 (← 返回 + 历史 + 周/月/年 + ✦ chip)
@@ -771,6 +751,464 @@ extension WeekHistoryView {
             )
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
+    }
+}
+
+// MARK: - v0.4.11 年度 tab 内容 (无 HTML demo 参照, 视觉延续 monthContent)
+extension WeekHistoryView {
+    var yearContent: some View {
+        // ViewBuilder §1.1: Group 包前 9 (≤10), 末尾 Spacer 作 VStack 直接子
+        VStack(alignment: .leading, spacing: 0) {
+            Group {
+                yearNavRow
+                Spacer().frame(height: 18)
+                yearHero
+                Spacer().frame(height: 22)
+                yearHeatmapSection
+                Spacer().frame(height: 22)
+                twelveMonthTrendSection
+                Spacer().frame(height: 16)
+                yearPbSection
+            }
+            Spacer().frame(height: 20)
+        }
+    }
+
+    // 年份导航行: ‹ 2026 ›   右侧 YEAR · 2026
+    var yearNavRow: some View {
+        HStack {
+            HStack(spacing: 8) {
+                Text("‹")
+                    .font(PaceFont.cn(size: 14, weight: .medium))
+                    .foregroundColor(Theme.text4)
+                    .kerning(1.6)
+                Text(MockData.YearHistory.yearCn)
+                    .font(PaceFont.cn(size: 12, weight: .semibold))
+                    .foregroundColor(Theme.text1)
+                    .kerning(2.4)
+                Text("›")
+                    .font(PaceFont.cn(size: 14, weight: .medium))
+                    .foregroundColor(Theme.text4)
+                    .kerning(1.6)
+            }
+            Spacer()
+            Text(MockData.YearHistory.yearEn)
+                .font(PaceFont.mono(size: 10, weight: .medium))
+                .foregroundColor(Theme.text3)
+                .kerning(2.4)
+        }
+    }
+
+    // 年度跑量 hero: 大数字 + ↑18% chip + 右侧 双 stat (跑步天数 / 平均配速)
+    var yearHero: some View {
+        HStack(alignment: .center, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("年度跑量")
+                    .font(PaceFont.cn(size: 11, weight: .medium))
+                    .foregroundColor(Theme.text3)
+                    .kerning(3.4)
+                    .padding(.bottom, 4)
+
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                    Text(String(format: "%.1f", MockData.YearHistory.yearKm))
+                        .font(.system(size: 54, weight: .bold, design: .monospaced))
+                        .foregroundColor(Theme.text1)
+                        .kerning(-2.4)
+                    Text("km")
+                        .font(PaceFont.cn(size: 14, weight: .medium))
+                        .foregroundColor(Theme.text3)
+                        .kerning(1.2)
+                }
+
+                // ↑18% vs 2025 chip
+                HStack(spacing: 4) {
+                    Text(MockData.YearHistory.yearTrendStr)
+                        .font(PaceFont.mono(size: 11, weight: .semibold))
+                        .foregroundColor(Theme.accent)
+                    Text(MockData.YearHistory.yearTrendCompare)
+                        .font(PaceFont.cn(size: 10, weight: .medium))
+                        .foregroundColor(Theme.text3)
+                        .kerning(0.6)
+                }
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
+                .background(Theme.accent.opacity(0.10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Theme.accent.opacity(0.42), lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(.top, 4)
+            }
+
+            Spacer()
+
+            // 双 stat 列 (代替 month tab 的 ring — 年度没有 goal target)
+            VStack(alignment: .trailing, spacing: 14) {
+                yearSubStat(
+                    label: MockData.YearHistory.runDaysLabel,
+                    value: "\(MockData.YearHistory.runDays)",
+                    unit: "天"
+                )
+                yearSubStat(
+                    label: MockData.YearHistory.avgPaceLabel,
+                    value: MockData.YearHistory.avgPaceStr,
+                    unit: "/km"
+                )
+            }
+            .frame(width: 96)
+        }
+    }
+
+    @ViewBuilder
+    func yearSubStat(label: String, value: String, unit: String) -> some View {
+        VStack(alignment: .trailing, spacing: 2) {
+            Text(label)
+                .font(PaceFont.cn(size: 9, weight: .medium))
+                .foregroundColor(Theme.text3)
+                .kerning(2.6)
+            HStack(alignment: .lastTextBaseline, spacing: 2) {
+                Text(value)
+                    .font(PaceFont.mono(size: 22, weight: .bold))
+                    .foregroundColor(Theme.text1)
+                    .kerning(-0.4)
+                Text(unit)
+                    .font(PaceFont.mono(size: 9, weight: .medium))
+                    .foregroundColor(Theme.text4)
+                    .kerning(0.8)
+            }
+        }
+    }
+
+    // 12 月 heatmap (1 行 × 12 列, 月份字母 + 强度色, 当前月 accent 边框)
+    var yearHeatmapSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("12 月分布")
+                    .font(PaceFont.cn(size: 11, weight: .medium))
+                    .foregroundColor(Theme.text3)
+                    .kerning(2.6)
+                Spacer()
+                Text("KM / MONTH")
+                    .font(PaceFont.mono(size: 9, weight: .medium))
+                    .foregroundColor(Theme.text4)
+                    .kerning(2.0)
+            }
+            YearMonthlyHeatmap(
+                monthlyKm: MockData.YearHistory.monthlyKm,
+                monthLabels: MockData.YearHistory.monthLabelsEn,
+                currentMonth: MockData.YearHistory.currentMonth,
+                maxKm: MockData.YearHistory.monthlyKmMax
+            )
+            .frame(height: 70)
+        }
+    }
+
+    // 12 个月趋势折线 (实线到 currentMonth, 之后虚线占位)
+    var twelveMonthTrendSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("12 个月趋势")
+                    .font(PaceFont.cn(size: 11, weight: .medium))
+                    .foregroundColor(Theme.text3)
+                    .kerning(2.6)
+                Spacer()
+                Text(MockData.YearHistory.trendDeltaStr)
+                    .font(PaceFont.mono(size: 11, weight: .semibold))
+                    .foregroundColor(Theme.accent)
+                    .kerning(0.6)
+            }
+            TwelveMonthTrend(
+                pointsY: MockData.YearHistory.trendPointsY,
+                splitIdx: MockData.YearHistory.currentMonth - 1
+            )
+            .frame(height: 56)
+        }
+    }
+
+    // 年度 PB · 3 ITEMS, 含 NEW / -42s delta vs 去年 chip
+    var yearPbSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("年度 PB")
+                    .font(PaceFont.cn(size: 11, weight: .medium))
+                    .foregroundColor(Theme.text3)
+                    .kerning(2.6)
+                Spacer()
+                Text("\(MockData.YearHistory.yearPBs.count) ITEMS")
+                    .font(PaceFont.mono(size: 9, weight: .medium))
+                    .foregroundColor(Theme.text4)
+                    .kerning(2.0)
+            }
+
+            VStack(spacing: 0) {
+                ForEach(0..<MockData.YearHistory.yearPBs.count, id: \.self) { i in
+                    yearPbRow(MockData.YearHistory.yearPBs[i],
+                              isLast: i == MockData.YearHistory.yearPBs.count - 1)
+                }
+            }
+            .background(Theme.bgCard)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Theme.hairlineBright, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    @ViewBuilder
+    func yearPbRow(_ row: (distance: String, time: String, delta: String, isPb: Bool),
+                   isLast: Bool) -> some View {
+        HStack {
+            Text(row.distance)
+                .font(PaceFont.cn(size: 13, weight: .medium))
+                .foregroundColor(Theme.text1)
+                .kerning(0.6)
+            Spacer()
+            Text(row.time)
+                .font(PaceFont.mono(size: 15, weight: .bold))
+                .foregroundColor(row.isPb ? Theme.accent : Theme.text1)
+                .kerning(-0.3)
+            Spacer()
+            yearPbDelta(row.delta)
+                .frame(minWidth: 64, alignment: .trailing)
+        }
+        .padding(.vertical, 9)
+        .padding(.horizontal, 12)
+        .overlay(
+            Rectangle()
+                .fill(isLast ? Color.clear : Theme.hairline)
+                .frame(height: 0.5),
+            alignment: .bottom
+        )
+    }
+
+    @ViewBuilder
+    func yearPbDelta(_ delta: String) -> some View {
+        if delta == "NEW" {
+            Text("NEW")
+                .font(PaceFont.mono(size: 9, weight: .bold))
+                .foregroundColor(Theme.gold)
+                .kerning(2.0)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Theme.gold.opacity(0.12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(Theme.gold.opacity(0.5), lineWidth: 0.8)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+        } else {
+            HStack(spacing: 3) {
+                Text("↓")
+                    .font(PaceFont.mono(size: 10, weight: .bold))
+                    .foregroundColor(Theme.accent)
+                Text(delta)
+                    .font(PaceFont.mono(size: 10, weight: .medium))
+                    .foregroundColor(Theme.accent)
+                    .kerning(0.5)
+            }
+        }
+    }
+}
+
+// MARK: - 12 月 heatmap row (1 行 × 12 cell)
+private struct YearMonthlyHeatmap: View {
+    let monthlyKm: [Double]
+    let monthLabels: [String]
+    let currentMonth: Int   // 1-indexed
+    let maxKm: Double
+
+    private let cols: Int = 12
+    private let gap: CGFloat = 3
+
+    var body: some View {
+        GeometryReader { geo in
+            let totalW: CGFloat = geo.size.width
+            let cellW: CGFloat = (totalW - CGFloat(cols - 1) * gap) / CGFloat(cols)
+            let cellH: CGFloat = geo.size.height
+
+            HStack(spacing: gap) {
+                ForEach(0..<cols, id: \.self) { i in
+                    YearMonthCell(
+                        monthLabel: monthLabels[i],
+                        km: monthlyKm[i],
+                        intensity: maxKm > 0 ? min(1.0, monthlyKm[i] / maxKm) : 0,
+                        isCurrent: (i + 1) == currentMonth,
+                        isFuture: (i + 1) > currentMonth
+                    )
+                    .frame(width: cellW, height: cellH)
+                }
+            }
+        }
+    }
+}
+
+private struct YearMonthCell: View {
+    let monthLabel: String
+    let km: Double
+    let intensity: Double
+    let isCurrent: Bool
+    let isFuture: Bool
+
+    private var bg: Color {
+        if isFuture { return Color.white.opacity(0.02) }
+        if intensity > 0 { return Theme.accent.opacity(0.15 + 0.55 * intensity) }
+        return Color.white.opacity(0.04)
+    }
+
+    private var labelColor: Color {
+        if isFuture { return Theme.text4 }
+        if intensity > 0 { return .white }
+        return Theme.text3
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 5).fill(bg)
+            VStack(spacing: 3) {
+                Text(monthLabel)
+                    .font(PaceFont.mono(size: 9, weight: .bold))
+                    .foregroundColor(labelColor)
+                    .kerning(0.4)
+                kmLabel
+            }
+            if isCurrent {
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke(Theme.accent, lineWidth: 1.5)
+                    .shadow(color: Theme.accent.opacity(0.5), radius: 4)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var kmLabel: some View {
+        if !isFuture && km > 0 {
+            Text("\(Int(km.rounded()))")
+                .font(PaceFont.mono(size: 8, weight: .medium))
+                .foregroundColor(Theme.text2)
+                .kerning(-0.2)
+        } else {
+            Text("·")
+                .font(.system(size: 8))
+                .foregroundColor(Theme.text4)
+        }
+    }
+}
+
+// MARK: - 12 月趋势折线 (实线 splitIdx 之前, 之后虚线占位)
+private struct TwelveMonthTrend: View {
+    let pointsY: [Double]   // viewBox y (越小=月里程越多)
+    let splitIdx: Int       // 实线最后一点的 index (含); = currentMonth - 1
+
+    @State private var endPulse: Bool = false
+
+    private let pointsX: [Double] = [
+        11, 35, 59, 83, 107, 131, 155, 179, 203, 227, 251, 269,
+    ]
+
+    var body: some View {
+        GeometryReader { geo in
+            // 显式 CGFloat (Swift 5.4 不自动 Double↔CGFloat, §1.2)
+            let scaleX: CGFloat = geo.size.width / 280
+            let scaleY: CGFloat = geo.size.height / 52
+            let lastIdx: Int = pointsY.count - 1
+            let solidLast: Int = max(0, min(splitIdx, lastIdx))
+
+            ZStack {
+                solidAreaPath(scaleX: scaleX, scaleY: scaleY, solidLast: solidLast)
+                solidLinePath(scaleX: scaleX, scaleY: scaleY, solidLast: solidLast)
+                if solidLast < lastIdx {
+                    dashedFuturePath(scaleX: scaleX, scaleY: scaleY,
+                                     solidLast: solidLast, lastIdx: lastIdx)
+                }
+                solidDots(scaleX: scaleX, scaleY: scaleY, solidLast: solidLast)
+                endMarker(scaleX: scaleX, scaleY: scaleY, solidLast: solidLast)
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                endPulse = true
+            }
+        }
+    }
+
+    private func solidAreaPath(scaleX: CGFloat, scaleY: CGFloat, solidLast: Int) -> some View {
+        Path { p in
+            p.move(to: CGPoint(x: CGFloat(pointsX[0]) * scaleX, y: CGFloat(pointsY[0]) * scaleY))
+            if solidLast >= 1 {
+                for i in 1...solidLast {
+                    p.addLine(to: CGPoint(x: CGFloat(pointsX[i]) * scaleX,
+                                          y: CGFloat(pointsY[i]) * scaleY))
+                }
+            }
+            p.addLine(to: CGPoint(x: CGFloat(pointsX[solidLast]) * scaleX, y: 48 * scaleY))
+            p.addLine(to: CGPoint(x: CGFloat(pointsX[0]) * scaleX, y: 48 * scaleY))
+            p.closeSubpath()
+        }
+        .fill(
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Theme.accent.opacity(0.35),
+                    Theme.accent.opacity(0.0),
+                ]),
+                startPoint: .top, endPoint: .bottom
+            )
+        )
+    }
+
+    private func solidLinePath(scaleX: CGFloat, scaleY: CGFloat, solidLast: Int) -> some View {
+        Path { p in
+            p.move(to: CGPoint(x: CGFloat(pointsX[0]) * scaleX, y: CGFloat(pointsY[0]) * scaleY))
+            if solidLast >= 1 {
+                for i in 1...solidLast {
+                    p.addLine(to: CGPoint(x: CGFloat(pointsX[i]) * scaleX,
+                                          y: CGFloat(pointsY[i]) * scaleY))
+                }
+            }
+        }
+        .stroke(Theme.accent, style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
+        .shadow(color: Theme.accent.opacity(0.5), radius: 4, y: 2)
+    }
+
+    private func dashedFuturePath(scaleX: CGFloat, scaleY: CGFloat,
+                                  solidLast: Int, lastIdx: Int) -> some View {
+        Path { p in
+            p.move(to: CGPoint(x: CGFloat(pointsX[solidLast]) * scaleX,
+                               y: CGFloat(pointsY[solidLast]) * scaleY))
+            for i in (solidLast + 1)...lastIdx {
+                p.addLine(to: CGPoint(x: CGFloat(pointsX[i]) * scaleX,
+                                      y: CGFloat(pointsY[i]) * scaleY))
+            }
+        }
+        .stroke(
+            Color.white.opacity(0.18),
+            style: StrokeStyle(lineWidth: 1.0, lineCap: .round, dash: [3, 4])
+        )
+    }
+
+    private func solidDots(scaleX: CGFloat, scaleY: CGFloat, solidLast: Int) -> some View {
+        ForEach(0..<max(0, solidLast), id: \.self) { i in
+            Circle()
+                .fill(Theme.bgCard)
+                .frame(width: 5, height: 5)
+                .overlay(Circle().stroke(Theme.accent, lineWidth: 1.2))
+                .position(x: CGFloat(pointsX[i]) * scaleX, y: CGFloat(pointsY[i]) * scaleY)
+        }
+    }
+
+    private func endMarker(scaleX: CGFloat, scaleY: CGFloat, solidLast: Int) -> some View {
+        ZStack {
+            Circle()
+                .stroke(Theme.accent.opacity(endPulse ? 0.6 : 0.3), lineWidth: 0.7)
+                .frame(width: endPulse ? 16 : 12, height: endPulse ? 16 : 12)
+            Circle()
+                .fill(Theme.accentBright)
+                .frame(width: 7, height: 7)
+                .shadow(color: Theme.accent.opacity(0.6), radius: 4)
+        }
+        .position(x: CGFloat(pointsX[solidLast]) * scaleX,
+                  y: CGFloat(pointsY[solidLast]) * scaleY)
     }
 }
 
