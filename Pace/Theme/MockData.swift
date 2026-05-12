@@ -108,6 +108,39 @@ enum MockData {
         static let lastKmDelta = "↓ 末公里 -22s"
     }
 
+    /// Phone 09 AI 教练数据
+    enum CoachChat {
+        static let coachName = "Pace 教练"
+        static let coachStatus = "在线 · 待命"
+        static let dateLine = "22:13 · 今天"
+
+        // 用户提问
+        static let userQuestion = "我下周想跑半马，准备好了吗？"
+
+        // AI 回复 (拆 3 段, 中间嵌 HRV chart)
+        static let aiPart1Before = "根据最近 "
+        static let aiPart1Mid1 = "30 天"
+        static let aiPart1Mid2 = "数据 —— 你已经准备好了。乳酸阈值配速稳定在 "
+        static let aiPart1Mid3 = "4'58\"/km"
+        static let aiPart1After = "。\n\n按当前体能，预计完赛时间："
+        static let aiPart1Finale = "1:54:32"
+        static let aiPart1Tail = "。"
+
+        // HRV 7 天 chart Y 坐标 (viewBox 220×42)
+        static let hrvPointsY: [Double] = [26, 18, 22, 14, 16, 12, 18]
+        static let hrvAvgMs = 64
+        static let hrvPeakMs = 71
+        static let hrvTrend = "趋势平稳"
+
+        // AI 回复段 2 (chart 下方)
+        static let aiPart2 = "本周做一次 12 km 长距离，然后减量。不要追配速 —— 你的有氧基础才是底牌。"
+
+        // 建议 chip
+        static let suggestionChips: [String] = ["展开训练计划", "恢复怎么样？"]
+
+        static let inputPlaceholder = "问 Pace 任何问题…"
+    }
+
     /// Phone 08 成就 / 里程碑数据
     enum Milestones {
         static let unlockedCount: Int = 12
