@@ -8,10 +8,9 @@
 //  v0.3.2 倒计时 + 接 RunningView
 //  v0.3.3 心跳呼吸 + 6s 倒计时
 //  v0.3.4 layout 紧凑 + checklist ✓ 改实心 + 加 GPS 搜索状态变体 (Phone 14)
-//
-//  状态机
-//    searching (2s) → counting (6s) → goRunning
-//    长按任意时刻 → dismiss 回 IdleHome
+//  v0.5.0 engine-driven — 内部状态机搬到 RunSessionEngine, 这屏仅做 UI 渲染.
+//         engine.phase ∈ {.preflight, .ready, .countdown} 都由这屏显示;
+//         .running 之后 RunFlowView 切到 RunningView.
 //
 //  对照 pace-demo/index.html
 //    - PHONE 02 (#L2301-L2394) 正常预热 + 倒计时
@@ -21,33 +20,23 @@
 import SwiftUI
 
 struct PreRunView: View {
-    @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var engine: RunSessionEngine
 
-    /// 当前阶段
-    private enum Phase {
-        case searching   // GPS 搜索中
-        case counting    // 倒计时
-        case goRunning   // 切到 RunningView
+    /// engine 暴露的 fixCount (0..6), 显示为"卫星数"
+    private var satellites: Int { min(6, max(0, engine.gpsFixCount)) }
+    /// engine.preflightSeconds — 已搜索秒
+    private var searchSeconds: Int { engine.preflightSeconds }
+    /// engine.countdown — countdown 剩余秒
+    private var counter: Int { engine.countdown }
+
+    /// .preflight = GPS 搜星中; .ready/.countdown = 倒计时
+    private var isSearching: Bool { engine.phase == .preflight }
+    private var isCountdown: Bool {
+        engine.phase == .countdown || engine.phase == .ready
     }
-    @State private var phase: Phase = .searching
-
-    /// searching 阶段：当前已找到的卫星数，2 → 6
-    @State private var satellites: Int = 2
-    /// searching 阶段：已搜索秒数
-    @State private var searchSeconds: Int = 0
-
-    /// counting 阶段：剩余秒数
-    @State private var counter: Int = MockData.PreRun.countdownStart
-
-    /// 1 Hz 计时器（贯穿 searching + counting）
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        if phase == .goRunning {
-            RunningView()
-        } else {
-            preRunContent
-        }
+        preRunContent
     }
 
     // MARK: - 主体
@@ -81,39 +70,10 @@ struct PreRunView: View {
         .contentShape(Rectangle())
         .onLongPressGesture(minimumDuration: 0.6) {
             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-            presentationMode.wrappedValue.dismiss()
+            engine.cancelPreflight()
         }
-        .onReceive(timer) { _ in tick() }
         .onAppear {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
-    }
-
-    // MARK: - 时序
-    private func tick() {
-        switch phase {
-        case .searching:
-            // 模拟卫星数递增, 2s 内从 2 → 6
-            searchSeconds += 1
-            if satellites < 6 {
-                satellites = min(6, satellites + 2)
-            }
-            if searchSeconds >= 2 || satellites >= 6 {
-                // GPS 锁定 → 进入倒计时
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                phase = .counting
-            }
-        case .counting:
-            if counter > 1 {
-                counter -= 1
-                UISelectionFeedbackGenerator().selectionChanged()
-            } else if counter == 1 {
-                counter = 0
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                phase = .goRunning
-            }
-        case .goRunning:
-            break
         }
     }
 
@@ -129,9 +89,9 @@ struct PreRunView: View {
 
             // searching 时变成 PRE-FLIGHT · WAITING (金色)
             // counting 时正常 PRE-FLIGHT CHECK (text4)
-            Text(phase == .searching ? "PRE-FLIGHT · WAITING" : "PRE-FLIGHT CHECK")
+            Text(isSearching ? "PRE-FLIGHT · WAITING" : "PRE-FLIGHT CHECK")
                 .font(PaceFont.mono(size: 9, weight: .semibold))
-                .foregroundColor(phase == .searching ? Theme.gold : Theme.text4)
+                .foregroundColor(isSearching ? Theme.gold : Theme.text4)
                 .kerning(2.0)
         }
         .padding(.top, 8)
@@ -140,8 +100,7 @@ struct PreRunView: View {
     // MARK: - Hero (searching: 金 spinner + 卫星 / counting: 倒计时圆)
     @ViewBuilder
     private var heroSection: some View {
-        switch phase {
-        case .searching:
+        if isSearching {
             VStack(spacing: 14) {
                 Text("SEARCHING GPS · \(searchSeconds + 1) 秒")
                     .font(PaceFont.mono(size: 9, weight: .semibold))
@@ -166,15 +125,15 @@ struct PreRunView: View {
                         .kerning(1.2)
                 }
             }
-
-        case .counting:
+        } else {
+            // .ready / .countdown 共用倒计时 hero. .ready 短暂 0.2s 视为 countdown=3
             VStack(spacing: 14) {
                 Text("COUNTDOWN")
                     .font(PaceFont.mono(size: 9, weight: .medium))
                     .foregroundColor(Theme.text3)
                     .kerning(3.6)
 
-                CountdownCircle(value: counter, total: MockData.PreRun.countdownStart)
+                CountdownCircle(value: max(1, counter), total: 3)
                     .frame(width: 132, height: 132)
 
                 Text("深呼吸，跑姿调整")
@@ -182,9 +141,6 @@ struct PreRunView: View {
                     .foregroundColor(Theme.text2)
                     .kerning(2.4)
             }
-
-        case .goRunning:
-            EmptyView()
         }
     }
 
@@ -199,24 +155,25 @@ struct PreRunView: View {
 
             // GPS: searching 时 spinner + 金, counting 时 ✓
             ChecklistRow(
-                state: phase == .searching ? .searching : .ok,
+                state: isSearching ? .searching : .ok,
                 label: "GPS",
-                detail: phase == .searching
+                detail: isSearching
                     ? "搜索中 · \(satellites) / 6 颗"
-                    : "已锁定 \(MockData.PreRun.gpsSatellites) 颗卫星"
+                    : "已锁定 \(max(4, satellites)) 颗卫星"
             )
 
             ChecklistRow(
                 state: .ok,
                 label: "心率",
-                detail: "\(MockData.PreRun.restingHR) BPM 静息"
+                detail: engine.currentHR.map { "\($0) BPM" }
+                    ?? "\(MockData.PreRun.restingHR) BPM 静息"
             )
 
             // 音乐: searching 时显示警告 (HTML demo Phone 14 的设定)
             ChecklistRow(
-                state: phase == .searching ? .warn : .ok,
+                state: isSearching ? .warn : .ok,
                 label: "音乐",
-                detail: phase == .searching ? "未检测到" : MockData.PreRun.musicSource
+                detail: isSearching ? "未检测到" : MockData.PreRun.musicSource
             )
 
             ChecklistRow(
@@ -230,13 +187,13 @@ struct PreRunView: View {
     // MARK: - 底部 (searching: 双按钮 + 弱 GPS 提示 / counting: 长按取消提示)
     @ViewBuilder
     private var bottomArea: some View {
-        if phase == .searching {
+        if isSearching {
             VStack(spacing: 8) {
                 HStack(spacing: 10) {
-                    // 移到空旷处 — 次级 (灰边框)
+                    // 移到空旷处 — 次级 (取消, 回 IdleHome)
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        presentationMode.wrappedValue.dismiss()
+                        engine.cancelPreflight()
                     }) {
                         Text("移到空旷处")
                             .font(PaceFont.cn(size: 12, weight: .medium))
@@ -253,11 +210,10 @@ struct PreRunView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
 
-                    // 继续 (精度低) — 金色风险态
+                    // 继续 (精度低) — 金色风险态 → 跳过 GPS 等
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-                        // 跳过 searching 直接进 counting
-                        phase = .counting
+                        engine.skipGpsAndProceed()
                     }) {
                         Text("继续 (精度低)")
                             .font(PaceFont.cn(size: 12, weight: .semibold))
@@ -528,6 +484,7 @@ private struct SpinnerArc: View {
 struct PreRunView_Previews: PreviewProvider {
     static var previews: some View {
         PreRunView()
+            .environmentObject(RunSessionEngine())
             .preferredColorScheme(.dark)
     }
 }

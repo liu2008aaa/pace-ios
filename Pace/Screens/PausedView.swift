@@ -14,8 +14,9 @@
 import SwiftUI
 
 struct PausedView: View {
-    @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var engine: RunSessionEngine
     @State private var pulse: Bool = false
+    @State private var endConfirming: Bool = false   // v0.5.0: 二次确认结束
 
     var body: some View {
         ZStack {
@@ -81,7 +82,7 @@ struct PausedView: View {
                 .font(PaceFont.cn(size: 12, weight: .medium))
                 .foregroundColor(Theme.gold)
                 .kerning(5.6)
-            Text(MockData.Paused.lastPace)
+            Text(engine.paceDisplay)
                 .font(.system(size: 64, weight: .semibold, design: .monospaced))
                 .foregroundColor(Color.white.opacity(0.40))
                 .kerning(-2.5)
@@ -92,17 +93,17 @@ struct PausedView: View {
         }
     }
 
-    // MARK: - 冻结的数据 (距离 · 时长)
+    // MARK: - 冻结的数据 (距离 · 时长 — 从 engine 读)
     private var frozenStats: some View {
         HStack(alignment: .bottom, spacing: 26) {
-            statBlock(value: String(format: "%.2f", MockData.Paused.distanceKm),
+            statBlock(value: engine.distanceDisplay,
                       unit: "km",
                       label: MockData.Paused.distanceLabel)
             Rectangle()
                 .fill(Theme.hairlineBright)
                 .frame(width: 0.5, height: 38)
                 .padding(.bottom, 16)
-            statBlock(value: MockData.Paused.elapsedTime,
+            statBlock(value: engine.elapsedDisplay,
                       unit: "",
                       label: MockData.Paused.timeLabel)
         }
@@ -149,24 +150,41 @@ struct PausedView: View {
         .opacity(0.55)
     }
 
-    // MARK: - 双按钮 (继续 ▶ / 结束 ■)
+    // MARK: - 双按钮 (继续 ▶ → engine.resume / 结束 ■ → 二次确认 → engine.end)
     private var actionButtons: some View {
         HStack(spacing: 10) {
             Button(action: {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
-                presentationMode.wrappedValue.dismiss()
+                engine.resume()
             }) {
                 actionLabel(icon: "▶", cn: "继续", en: "CONTINUE", primary: true)
             }
             .buttonStyle(PlainButtonStyle())
 
-            Button(action: {
-                UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                // v0.5+: 弹二次确认 sheet → 接 PostRunView
-            }) {
-                actionLabel(icon: "■", cn: "结束", en: "END", primary: false)
+            Button(action: { handleEndTap() }) {
+                actionLabel(
+                    icon: "■",
+                    cn: endConfirming ? "再点确认" : "结束",
+                    en: endConfirming ? "TAP TO CONFIRM" : "END",
+                    primary: false
+                )
             }
             .buttonStyle(PlainButtonStyle())
+        }
+    }
+
+    /// 第一次点 → 进入 confirming, 3s 不操作自动回滚.
+    /// 第二次点 → engine.end() (RunFlowView 切到 PostRunView)
+    private func handleEndTap() {
+        if endConfirming {
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            engine.end()
+        } else {
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            endConfirming = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                if endConfirming { endConfirming = false }
+            }
         }
     }
 
@@ -282,6 +300,7 @@ private struct HrZoneBar: View {
 struct PausedView_Previews: PreviewProvider {
     static var previews: some View {
         PausedView()
+            .environmentObject(RunSessionEngine())
             .preferredColorScheme(.dark)
     }
 }

@@ -25,10 +25,44 @@
 import SwiftUI
 
 struct PostRunView: View {
-    @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var engine: RunSessionEngine
 
     @State private var endPulse = false  // 路线终点呼吸标记
     @State private var showShare = false  // v0.4.1: 分享按钮 → ShareView
+
+    // MARK: - v0.5.0 显示数据 (engine.lastRecord 有则真, 无则 MockData)
+
+    private var displayDistanceKm: Double {
+        engine.lastRecord?.distanceKm ?? MockData.PostRun.distanceKm
+    }
+
+    private var displayDurationStr: String {
+        engine.lastRecord?.durationDisplay ?? MockData.PostRun.durationStr
+    }
+
+    private var displayAvgPace: String {
+        engine.lastRecord?.paceDisplay ?? MockData.PostRun.avgPace
+    }
+
+    private var displayHR: Int {
+        engine.lastRecord?.avgHR ?? MockData.PostRun.heartRate
+    }
+
+    private var displayDate: String {
+        guard let r = engine.lastRecord else { return MockData.PostRun.date }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "M月d日"
+        return f.string(from: r.startDate)
+    }
+
+    private var displayTimeOfDay: String {
+        guard let r = engine.lastRecord else { return MockData.PostRun.timeOfDay }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "a h:mm"
+        return f.string(from: r.startDate)
+    }
 
     var body: some View {
         ZStack {
@@ -75,14 +109,14 @@ struct PostRunView: View {
     // MARK: - 顶部品牌条 (日期 · 总结 + 时段)
     private var brandStrip: some View {
         HStack {
-            Text("\(MockData.PostRun.date) · 总结")
+            Text("\(displayDate) · 总结")
                 .font(PaceFont.cn(size: 12, weight: .medium))
                 .foregroundColor(Theme.text2)
                 .kerning(2.0)
 
             Spacer()
 
-            Text(MockData.PostRun.timeOfDay)
+            Text(displayTimeOfDay)
                 .font(PaceFont.cn(size: 12, weight: .semibold))
                 .foregroundColor(Theme.accent)
                 .kerning(2.0)
@@ -179,7 +213,7 @@ struct PostRunView: View {
 
             // 顶左 ROUTE · 5.42 KM
             HStack {
-                Text("ROUTE · \(String(format: "%.2f", MockData.PostRun.distanceKm)) KM")
+                Text("ROUTE · \(String(format: "%.2f", displayDistanceKm)) KM")
                     .font(PaceFont.mono(size: 9, weight: .semibold))
                     .foregroundColor(Theme.text3)
                     .kerning(2.5)
@@ -210,9 +244,9 @@ struct PostRunView: View {
     // MARK: - 三列主统计
     private var statsRow: some View {
         HStack(spacing: 6) {
-            StatCard(value: String(format: "%.2f", MockData.PostRun.distanceKm), label: "公里")
-            StatCard(value: MockData.PostRun.durationStr, label: "时长")
-            StatCard(value: MockData.PostRun.avgPace, label: "平均配速")
+            StatCard(value: String(format: "%.2f", displayDistanceKm), label: "公里")
+            StatCard(value: displayDurationStr, label: "时长")
+            StatCard(value: displayAvgPace, label: "平均配速")
         }
     }
 
@@ -259,10 +293,10 @@ struct PostRunView: View {
             }
             .buttonStyle(PlainButtonStyle())
 
-            // + 备注 — secondary
+            // + 备注 — secondary. v0.5.0: 同时承担"完成 / 回 IdleHome"职责.
             Button(action: {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                presentationMode.wrappedValue.dismiss()
+                engine.acknowledge()   // phase → .idle, RunFlowView 自动 dismiss
             }) {
                 Text("+ 备注")
                     .font(PaceFont.cn(size: 15, weight: .semibold))
@@ -726,6 +760,7 @@ private struct PaceChartView: View {
 struct PostRunView_Previews: PreviewProvider {
     static var previews: some View {
         PostRunView()
+            .environmentObject(RunSessionEngine())
             .preferredColorScheme(.dark)
     }
 }

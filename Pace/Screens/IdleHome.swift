@@ -13,11 +13,21 @@ import SwiftUI
 
 struct IdleHome: View {
 
-    // v0.3.0: 出发按钮 → fullScreenCover PreRunView (倒计时归零内部切到 RunningView)
-    @State private var showPreRun = false
+    // v0.5.0: engine 驱动整个 run loop. IdleHome 通过 engine.phase != .idle
+    //         判断是否要拉起全屏接管. 这样 PreRun/Running/Paused/PostRun 都用同一
+    //         fullScreenCover 层, engine 内部切换显示哪屏.
+    @EnvironmentObject var engine: RunSessionEngine
 
     // v0.4.2.1: 本周节奏卡 → fullScreenCover WeekHistoryView (周历史)
     @State private var showWeekHistory = false
+
+    /// engine.phase 离开 .idle 即拉起全屏 RunFlowView
+    private var isRunFlowActive: Binding<Bool> {
+        Binding(
+            get: { self.engine.phase != .idle },
+            set: { _ in /* engine 内部 acknowledge() 切回 .idle */ }
+        )
+    }
 
     // MARK: - Time-aware greeting prefix
     private var greetingPrefix: String {
@@ -56,9 +66,9 @@ struct IdleHome: View {
                 StartButton {
                     UINotificationFeedbackGenerator()
                         .notificationOccurred(.success)
-                    // v0.3.2: IdleHome → PreRunView → (3s 倒计时) → RunningView
-                    // PreRunView 内部 if-else 切到 RunningView, 共用同一 fullScreenCover 层
-                    showPreRun = true
+                    // v0.5.0: 触发 engine 进入 preflight. engine.phase 变化驱动
+                    // isRunFlowActive Binding, 自动弹 fullScreenCover.
+                    engine.startPreflight()
                 }
 
                 // 底部仅剩 14 天点阵带（含彗星扫描动画）。
@@ -69,11 +79,13 @@ struct IdleHome: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
         }
-        // 出发按钮 → 全屏接管的 PreRunView (内部 3s 倒计时后切 RunningView)
-        // 用 fullScreenCover 而非 NavigationLink，因为跑步是"接管屏"
-        // 不应该有 navigation bar / back swipe
-        .fullScreenCover(isPresented: $showPreRun) {
-            PreRunView()
+        // v0.5.0: 单一全屏接管层 — RunFlowView 内部根据 engine.phase 切显示
+        // PreRunView / RunningView / PausedView / PostRunView. 用 fullScreenCover
+        // 是因为跑步是"接管屏" — 不应该有 navigation bar / back swipe.
+        .fullScreenCover(isPresented: isRunFlowActive) {
+            RunFlowView()
+                .environmentObject(engine)
+                .environmentObject(engine.store)
         }
         // 本周节奏卡 → 全屏 WeekHistoryView (周历史完整页)
         // v0.4.2.1: 用户反馈 Phone 06 缺入口
