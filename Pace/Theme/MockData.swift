@@ -108,6 +108,36 @@ enum MockData {
         static let lastKmDelta = "↓ 末公里 -22s"
     }
 
+    /// Phone 08 成就 / 里程碑数据
+    enum Milestones {
+        static let unlockedCount: Int = 12
+        static let totalCount: Int = 24
+
+        // 最新解锁 hero
+        static let latestUnlockTitle = "30 天最快配速"
+        static let latestUnlockValue = "5'02\""
+        static let latestUnlockMeta = "/ km · 5月7日"
+
+        // 成就状态
+        enum AchState { case unlocked, gold, locked }
+
+        // 距离分组成就 (name / value / unit可空 / meta / state / SF symbol)
+        static let distanceAchievements: [(name: String, value: String, unit: String, meta: String, state: AchState, symbol: String)] = [
+            ("100 km 月",  "138.5",   "km", "✓ 5月7日",          .unlocked, "calendar"),
+            ("10K 完赛",   "45'18\"",  "",  "✓ 4月15日",         .unlocked, "checkmark.seal"),
+            ("半马完赛",   "1:54:32", "",   "✓ 5月7日 PB",       .gold,     "rosette"),
+            ("全马完赛",   "42.2 km", "",   "锁定 · 进度 0%",     .locked,   "lock"),
+        ]
+
+        // 速度分组成就
+        static let speedAchievements: [(name: String, value: String, unit: String, meta: String, state: AchState, symbol: String)] = [
+            ("破 5 配速",     "4'58\"", "", "✓ 4月22日",  .unlocked, "stopwatch"),
+            ("破 4'30 配速",  "4'30\"", "", "差 28 秒",    .locked,   "chart.bar"),
+        ]
+
+        static let streakDays: Int = 12
+    }
+
     /// Phone 07 月度统计数据
     enum MonthlyStats {
         // 月份元数据
