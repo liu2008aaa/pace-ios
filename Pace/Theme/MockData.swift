@@ -108,6 +108,63 @@ enum MockData {
         static let lastKmDelta = "↓ 末公里 -22s"
     }
 
+    /// Phone 10 设置数据
+    enum Settings {
+        static let userName = "刘宇"
+        static let userHandle = "@liuyu"
+        static let profileMeta = "已跑 138.5 km · 连续 12 天"
+
+        static let appVersion = "CONCEPT v0.1"
+
+        /// 设置行类型
+        enum RowKind {
+            case toggle(on: Bool)
+            case nav(value: String, valueAccent: Bool)
+            case staticText(value: String)
+            case action  // 仅 ›
+        }
+
+        /// 单行: label, 推荐标记?, kind
+        struct Row {
+            let label: String
+            let recommended: Bool
+            let kind: RowKind
+            init(_ label: String, recommended: Bool = false, _ kind: RowKind) {
+                self.label = label
+                self.recommended = recommended
+                self.kind = kind
+            }
+        }
+
+        /// 单个 section: title, rows
+        struct Section {
+            let title: String
+            let rows: [Row]
+        }
+
+        static let sections: [Section] = [
+            Section(title: "运动 · 语音 · WORKOUT & VOICE", rows: [
+                Row("自动暂停", recommended: true, .toggle(on: true)),
+                Row("启用语音播报", .toggle(on: true)),
+                Row("播报频率", .nav(value: "每 1 公里", valueAccent: false)),
+                Row("音色", .nav(value: "中文女声", valueAccent: false)),
+            ]),
+            Section(title: "音乐协作 · MUSIC", rows: [
+                Row("礼让模式", recommended: true, .toggle(on: true)),
+                Row("默认音乐 APP", .nav(value: "网易云音乐", valueAccent: false)),
+            ]),
+            Section(title: "数据 · DATA", rows: [
+                Row("iCloud 同步", .nav(value: "已开启", valueAccent: true)),
+                Row("Apple Watch", .nav(value: "已配对", valueAccent: true)),
+            ]),
+            Section(title: "关于 · ABOUT", rows: [
+                Row("版本", .staticText(value: appVersion)),
+                Row("反馈与建议", .action),
+                Row("请作者喝杯咖啡 ☕", .action),
+            ]),
+        ]
+    }
+
     /// Phone 09 AI 教练数据
     enum CoachChat {
         static let coachName = "Pace 教练"
