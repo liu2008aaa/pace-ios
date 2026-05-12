@@ -296,12 +296,16 @@ private struct BigMapGridShape: Shape {
 }
 
 // MARK: - 5 段路线 (慢→快 渐变色)
+//
+// ⚠️ iOS 14 ViewBuilder closure 内不能声明 func, 只能 let (雷 7)
+// 改成 let vp closure 绑定 (闭包不是 declaration, 是 value)
+//
 private struct BigRouteShapes: View {
     var body: some View {
         GeometryReader { geo in
             let scaleX: CGFloat = geo.size.width / 280
             let scaleY: CGFloat = geo.size.height / 232
-            func vp(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            let vp: (CGFloat, CGFloat) -> CGPoint = { x, y in
                 CGPoint(x: x * scaleX, y: y * scaleY)
             }
 

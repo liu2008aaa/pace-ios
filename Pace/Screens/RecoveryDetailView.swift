@@ -20,6 +20,7 @@ struct RecoveryDetailView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
+                    // ⚠️ ViewBuilder 单容器 ≤ 10 子, 拆 2 Group (雷 1)
                     Group {
                         brandStrip
                         Spacer().frame(height: 18)
@@ -28,6 +29,8 @@ struct RecoveryDetailView: View {
                         weekTrendCard
                         Spacer().frame(height: 18)
                         breakdownSection
+                    }
+                    Group {
                         Spacer().frame(height: 16)
                         aiExplanation
                         Spacer().frame(height: 18)
