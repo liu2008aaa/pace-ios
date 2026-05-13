@@ -101,6 +101,9 @@ enum MockData {
         static let durationStr = "28:14"
         static let avgPace = "5'12\""
 
+        // 平均心率 (PostRunView.displayHR fallback —— engine.lastRecord?.avgHR 无值时使用)
+        static let heartRate = 152
+
         // 路线图 GPS 坐标
         static let coords = "31.2°N · 121.4°E"
 
