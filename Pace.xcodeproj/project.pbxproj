@@ -1,0 +1,524 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5BB1DCC02FB4480F00606CD9 /* PaceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCBF2FB4480F00606CD9 /* PaceApp.swift */; };
+		5BB1DCC22FB4480F00606CD9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCC12FB4480F00606CD9 /* ContentView.swift */; };
+		5BB1DCC42FB4481A00606CD9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5BB1DCC32FB4481A00606CD9 /* Assets.xcassets */; };
+		5BB1DCC72FB4481A00606CD9 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5BB1DCC62FB4481A00606CD9 /* Preview Assets.xcassets */; };
+		5BB1DCEF2FB4487800606CD9 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCCE2FB4487800606CD9 /* Typography.swift */; };
+		5BB1DCF02FB4487800606CD9 /* Spacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCCF2FB4487800606CD9 /* Spacing.swift */; };
+		5BB1DCF12FB4487800606CD9 /* MockData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCD02FB4487800606CD9 /* MockData.swift */; };
+		5BB1DCF22FB4487800606CD9 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCD12FB4487800606CD9 /* Colors.swift */; };
+		5BB1DCF32FB4487800606CD9 /* PostRunView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCD32FB4487800606CD9 /* PostRunView.swift */; };
+		5BB1DCF42FB4487800606CD9 /* PausedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCD42FB4487800606CD9 /* PausedView.swift */; };
+		5BB1DCF52FB4487800606CD9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCD52FB4487800606CD9 /* SettingsView.swift */; };
+		5BB1DCF62FB4487800606CD9 /* FirstRunHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCD62FB4487800606CD9 /* FirstRunHomeView.swift */; };
+		5BB1DCF72FB4487800606CD9 /* IdleHome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCD72FB4487800606CD9 /* IdleHome.swift */; };
+		5BB1DCF82FB4487800606CD9 /* RunningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCD82FB4487800606CD9 /* RunningView.swift */; };
+		5BB1DCF92FB4487800606CD9 /* PreRunView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCD92FB4487800606CD9 /* PreRunView.swift */; };
+		5BB1DCFA2FB4487800606CD9 /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCDA2FB4487800606CD9 /* ShareView.swift */; };
+		5BB1DCFB2FB4487800606CD9 /* CoachChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCDB2FB4487800606CD9 /* CoachChatView.swift */; };
+		5BB1DCFC2FB4487800606CD9 /* AchievementsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCDC2FB4487800606CD9 /* AchievementsView.swift */; };
+		5BB1DCFD2FB4487800606CD9 /* RouteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCDD2FB4487800606CD9 /* RouteDetailView.swift */; };
+		5BB1DCFE2FB4487800606CD9 /* LockScreenPushView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCDE2FB4487800606CD9 /* LockScreenPushView.swift */; };
+		5BB1DCFF2FB4487800606CD9 /* RunFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCDF2FB4487800606CD9 /* RunFlowView.swift */; };
+		5BB1DD002FB4487800606CD9 /* WeekHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCE02FB4487800606CD9 /* WeekHistoryView.swift */; };
+		5BB1DD012FB4487800606CD9 /* RecoveryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCE12FB4487800606CD9 /* RecoveryDetailView.swift */; };
+		5BB1DD022FB4487800606CD9 /* GpsSearchingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCE22FB4487800606CD9 /* GpsSearchingView.swift */; };
+		5BB1DD032FB4487800606CD9 /* RunRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCE42FB4487800606CD9 /* RunRecord.swift */; };
+		5BB1DD042FB4487800606CD9 /* RunSessionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCE62FB4487800606CD9 /* RunSessionEngine.swift */; };
+		5BB1DD052FB4487800606CD9 /* HealthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCE72FB4487800606CD9 /* HealthService.swift */; };
+		5BB1DD062FB4487800606CD9 /* RunSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCE82FB4487800606CD9 /* RunSessionStore.swift */; };
+		5BB1DD072FB4487800606CD9 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCE92FB4487800606CD9 /* LocationService.swift */; };
+		5BB1DD082FB4487800606CD9 /* DialCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCEB2FB4487800606CD9 /* DialCard.swift */; };
+		5BB1DD092FB4487800606CD9 /* Hairline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCEC2FB4487800606CD9 /* Hairline.swift */; };
+		5BB1DD0A2FB4487800606CD9 /* StartButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCED2FB4487800606CD9 /* StartButton.swift */; };
+		5BB1DD0B2FB4487800606CD9 /* TimelineDots.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BB1DCEE2FB4487800606CD9 /* TimelineDots.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		5B31FF112FB47C1100723661 /* Pace.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Pace.entitlements; sourceTree = "<group>"; };
+		5B31FF122FB47C4000723661 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		5BB1DCBC2FB4480F00606CD9 /* Pace.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pace.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5BB1DCBF2FB4480F00606CD9 /* PaceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaceApp.swift; sourceTree = "<group>"; };
+		5BB1DCC12FB4480F00606CD9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		5BB1DCC32FB4481A00606CD9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		5BB1DCC62FB4481A00606CD9 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		5BB1DCCE2FB4487800606CD9 /* Typography.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		5BB1DCCF2FB4487800606CD9 /* Spacing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Spacing.swift; sourceTree = "<group>"; };
+		5BB1DCD02FB4487800606CD9 /* MockData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockData.swift; sourceTree = "<group>"; };
+		5BB1DCD12FB4487800606CD9 /* Colors.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
+		5BB1DCD32FB4487800606CD9 /* PostRunView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PostRunView.swift; sourceTree = "<group>"; };
+		5BB1DCD42FB4487800606CD9 /* PausedView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PausedView.swift; sourceTree = "<group>"; };
+		5BB1DCD52FB4487800606CD9 /* SettingsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		5BB1DCD62FB4487800606CD9 /* FirstRunHomeView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FirstRunHomeView.swift; sourceTree = "<group>"; };
+		5BB1DCD72FB4487800606CD9 /* IdleHome.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IdleHome.swift; sourceTree = "<group>"; };
+		5BB1DCD82FB4487800606CD9 /* RunningView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RunningView.swift; sourceTree = "<group>"; };
+		5BB1DCD92FB4487800606CD9 /* PreRunView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreRunView.swift; sourceTree = "<group>"; };
+		5BB1DCDA2FB4487800606CD9 /* ShareView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ShareView.swift; sourceTree = "<group>"; };
+		5BB1DCDB2FB4487800606CD9 /* CoachChatView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoachChatView.swift; sourceTree = "<group>"; };
+		5BB1DCDC2FB4487800606CD9 /* AchievementsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AchievementsView.swift; sourceTree = "<group>"; };
+		5BB1DCDD2FB4487800606CD9 /* RouteDetailView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RouteDetailView.swift; sourceTree = "<group>"; };
+		5BB1DCDE2FB4487800606CD9 /* LockScreenPushView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LockScreenPushView.swift; sourceTree = "<group>"; };
+		5BB1DCDF2FB4487800606CD9 /* RunFlowView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RunFlowView.swift; sourceTree = "<group>"; };
+		5BB1DCE02FB4487800606CD9 /* WeekHistoryView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WeekHistoryView.swift; sourceTree = "<group>"; };
+		5BB1DCE12FB4487800606CD9 /* RecoveryDetailView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RecoveryDetailView.swift; sourceTree = "<group>"; };
+		5BB1DCE22FB4487800606CD9 /* GpsSearchingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GpsSearchingView.swift; sourceTree = "<group>"; };
+		5BB1DCE42FB4487800606CD9 /* RunRecord.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RunRecord.swift; sourceTree = "<group>"; };
+		5BB1DCE62FB4487800606CD9 /* RunSessionEngine.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RunSessionEngine.swift; sourceTree = "<group>"; };
+		5BB1DCE72FB4487800606CD9 /* HealthService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HealthService.swift; sourceTree = "<group>"; };
+		5BB1DCE82FB4487800606CD9 /* RunSessionStore.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RunSessionStore.swift; sourceTree = "<group>"; };
+		5BB1DCE92FB4487800606CD9 /* LocationService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		5BB1DCEB2FB4487800606CD9 /* DialCard.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DialCard.swift; sourceTree = "<group>"; };
+		5BB1DCEC2FB4487800606CD9 /* Hairline.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Hairline.swift; sourceTree = "<group>"; };
+		5BB1DCED2FB4487800606CD9 /* StartButton.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StartButton.swift; sourceTree = "<group>"; };
+		5BB1DCEE2FB4487800606CD9 /* TimelineDots.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TimelineDots.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5BB1DCB92FB4480F00606CD9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		5BB1DCB32FB4480F00606CD9 = {
+			isa = PBXGroup;
+			children = (
+				5BB1DCEA2FB4487800606CD9 /* Components */,
+				5BB1DCE32FB4487800606CD9 /* Models */,
+				5BB1DCD22FB4487800606CD9 /* Screens */,
+				5BB1DCE52FB4487800606CD9 /* Services */,
+				5BB1DCCD2FB4487800606CD9 /* Theme */,
+				5BB1DCBE2FB4480F00606CD9 /* Pace */,
+				5BB1DCBD2FB4480F00606CD9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5BB1DCBD2FB4480F00606CD9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5BB1DCBC2FB4480F00606CD9 /* Pace.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		5BB1DCBE2FB4480F00606CD9 /* Pace */ = {
+			isa = PBXGroup;
+			children = (
+				5B31FF122FB47C4000723661 /* Info.plist */,
+				5B31FF112FB47C1100723661 /* Pace.entitlements */,
+				5BB1DCBF2FB4480F00606CD9 /* PaceApp.swift */,
+				5BB1DCC12FB4480F00606CD9 /* ContentView.swift */,
+				5BB1DCC32FB4481A00606CD9 /* Assets.xcassets */,
+				5BB1DCC52FB4481A00606CD9 /* Preview Content */,
+			);
+			path = Pace;
+			sourceTree = "<group>";
+		};
+		5BB1DCC52FB4481A00606CD9 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				5BB1DCC62FB4481A00606CD9 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		5BB1DCCD2FB4487800606CD9 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				5BB1DCCE2FB4487800606CD9 /* Typography.swift */,
+				5BB1DCCF2FB4487800606CD9 /* Spacing.swift */,
+				5BB1DCD02FB4487800606CD9 /* MockData.swift */,
+				5BB1DCD12FB4487800606CD9 /* Colors.swift */,
+			);
+			name = Theme;
+			path = Pace/Theme;
+			sourceTree = "<group>";
+		};
+		5BB1DCD22FB4487800606CD9 /* Screens */ = {
+			isa = PBXGroup;
+			children = (
+				5BB1DCD32FB4487800606CD9 /* PostRunView.swift */,
+				5BB1DCD42FB4487800606CD9 /* PausedView.swift */,
+				5BB1DCD52FB4487800606CD9 /* SettingsView.swift */,
+				5BB1DCD62FB4487800606CD9 /* FirstRunHomeView.swift */,
+				5BB1DCD72FB4487800606CD9 /* IdleHome.swift */,
+				5BB1DCD82FB4487800606CD9 /* RunningView.swift */,
+				5BB1DCD92FB4487800606CD9 /* PreRunView.swift */,
+				5BB1DCDA2FB4487800606CD9 /* ShareView.swift */,
+				5BB1DCDB2FB4487800606CD9 /* CoachChatView.swift */,
+				5BB1DCDC2FB4487800606CD9 /* AchievementsView.swift */,
+				5BB1DCDD2FB4487800606CD9 /* RouteDetailView.swift */,
+				5BB1DCDE2FB4487800606CD9 /* LockScreenPushView.swift */,
+				5BB1DCDF2FB4487800606CD9 /* RunFlowView.swift */,
+				5BB1DCE02FB4487800606CD9 /* WeekHistoryView.swift */,
+				5BB1DCE12FB4487800606CD9 /* RecoveryDetailView.swift */,
+				5BB1DCE22FB4487800606CD9 /* GpsSearchingView.swift */,
+			);
+			name = Screens;
+			path = Pace/Screens;
+			sourceTree = "<group>";
+		};
+		5BB1DCE32FB4487800606CD9 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				5BB1DCE42FB4487800606CD9 /* RunRecord.swift */,
+			);
+			name = Models;
+			path = Pace/Models;
+			sourceTree = "<group>";
+		};
+		5BB1DCE52FB4487800606CD9 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				5BB1DCE62FB4487800606CD9 /* RunSessionEngine.swift */,
+				5BB1DCE72FB4487800606CD9 /* HealthService.swift */,
+				5BB1DCE82FB4487800606CD9 /* RunSessionStore.swift */,
+				5BB1DCE92FB4487800606CD9 /* LocationService.swift */,
+			);
+			name = Services;
+			path = Pace/Services;
+			sourceTree = "<group>";
+		};
+		5BB1DCEA2FB4487800606CD9 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				5BB1DCEB2FB4487800606CD9 /* DialCard.swift */,
+				5BB1DCEC2FB4487800606CD9 /* Hairline.swift */,
+				5BB1DCED2FB4487800606CD9 /* StartButton.swift */,
+				5BB1DCEE2FB4487800606CD9 /* TimelineDots.swift */,
+			);
+			name = Components;
+			path = Pace/Components;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5BB1DCBB2FB4480F00606CD9 /* Pace */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5BB1DCCA2FB4481A00606CD9 /* Build configuration list for PBXNativeTarget "Pace" */;
+			buildPhases = (
+				5BB1DCB82FB4480F00606CD9 /* Sources */,
+				5BB1DCB92FB4480F00606CD9 /* Frameworks */,
+				5BB1DCBA2FB4480F00606CD9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Pace;
+			productName = Pace;
+			productReference = 5BB1DCBC2FB4480F00606CD9 /* Pace.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		5BB1DCB42FB4480F00606CD9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					5BB1DCBB2FB4480F00606CD9 = {
+						CreatedOnToolsVersion = 15.0.1;
+					};
+				};
+			};
+			buildConfigurationList = 5BB1DCB72FB4480F00606CD9 /* Build configuration list for PBXProject "Pace" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 5BB1DCB32FB4480F00606CD9;
+			productRefGroup = 5BB1DCBD2FB4480F00606CD9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5BB1DCBB2FB4480F00606CD9 /* Pace */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5BB1DCBA2FB4480F00606CD9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5BB1DCC72FB4481A00606CD9 /* Preview Assets.xcassets in Resources */,
+				5BB1DCC42FB4481A00606CD9 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5BB1DCB82FB4480F00606CD9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5BB1DD092FB4487800606CD9 /* Hairline.swift in Sources */,
+				5BB1DD052FB4487800606CD9 /* HealthService.swift in Sources */,
+				5BB1DD022FB4487800606CD9 /* GpsSearchingView.swift in Sources */,
+				5BB1DCF42FB4487800606CD9 /* PausedView.swift in Sources */,
+				5BB1DCF32FB4487800606CD9 /* PostRunView.swift in Sources */,
+				5BB1DCF62FB4487800606CD9 /* FirstRunHomeView.swift in Sources */,
+				5BB1DCC22FB4480F00606CD9 /* ContentView.swift in Sources */,
+				5BB1DCF82FB4487800606CD9 /* RunningView.swift in Sources */,
+				5BB1DD072FB4487800606CD9 /* LocationService.swift in Sources */,
+				5BB1DD0B2FB4487800606CD9 /* TimelineDots.swift in Sources */,
+				5BB1DCF52FB4487800606CD9 /* SettingsView.swift in Sources */,
+				5BB1DCF22FB4487800606CD9 /* Colors.swift in Sources */,
+				5BB1DCF02FB4487800606CD9 /* Spacing.swift in Sources */,
+				5BB1DD0A2FB4487800606CD9 /* StartButton.swift in Sources */,
+				5BB1DCFC2FB4487800606CD9 /* AchievementsView.swift in Sources */,
+				5BB1DCEF2FB4487800606CD9 /* Typography.swift in Sources */,
+				5BB1DD062FB4487800606CD9 /* RunSessionStore.swift in Sources */,
+				5BB1DCC02FB4480F00606CD9 /* PaceApp.swift in Sources */,
+				5BB1DCFA2FB4487800606CD9 /* ShareView.swift in Sources */,
+				5BB1DCF92FB4487800606CD9 /* PreRunView.swift in Sources */,
+				5BB1DCF12FB4487800606CD9 /* MockData.swift in Sources */,
+				5BB1DCFD2FB4487800606CD9 /* RouteDetailView.swift in Sources */,
+				5BB1DD042FB4487800606CD9 /* RunSessionEngine.swift in Sources */,
+				5BB1DCFF2FB4487800606CD9 /* RunFlowView.swift in Sources */,
+				5BB1DD082FB4487800606CD9 /* DialCard.swift in Sources */,
+				5BB1DD012FB4487800606CD9 /* RecoveryDetailView.swift in Sources */,
+				5BB1DD032FB4487800606CD9 /* RunRecord.swift in Sources */,
+				5BB1DCFE2FB4487800606CD9 /* LockScreenPushView.swift in Sources */,
+				5BB1DD002FB4487800606CD9 /* WeekHistoryView.swift in Sources */,
+				5BB1DCF72FB4487800606CD9 /* IdleHome.swift in Sources */,
+				5BB1DCFB2FB4487800606CD9 /* CoachChatView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		5BB1DCC82FB4481A00606CD9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		5BB1DCC92FB4481A00606CD9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		5BB1DCCB2FB4481A00606CD9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Pace/Pace.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Pace/Preview Content\"";
+				DEVELOPMENT_TEAM = YU8Z5CHY96;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Pace/Info.plist;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "用于读取你的心率，在跑步中实时显示。";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "把这次跑步保存到Health应用，方便回看。";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "跑步时记录路线和配速，仅在跑步中使用。";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.liuyu.Pace;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5BB1DCCC2FB4481A00606CD9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Pace/Pace.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"Pace/Preview Content\"";
+				DEVELOPMENT_TEAM = YU8Z5CHY96;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Pace/Info.plist;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "用于读取你的心率，在跑步中实时显示。";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "把这次跑步保存到Health应用，方便回看。";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "跑步时记录路线和配速，仅在跑步中使用。";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.liuyu.Pace;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5BB1DCB72FB4480F00606CD9 /* Build configuration list for PBXProject "Pace" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5BB1DCC82FB4481A00606CD9 /* Debug */,
+				5BB1DCC92FB4481A00606CD9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5BB1DCCA2FB4481A00606CD9 /* Build configuration list for PBXNativeTarget "Pace" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5BB1DCCB2FB4481A00606CD9 /* Debug */,
+				5BB1DCCC2FB4481A00606CD9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 5BB1DCB42FB4480F00606CD9 /* Project object */;
+}
