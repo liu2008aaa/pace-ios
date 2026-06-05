@@ -27,6 +27,7 @@ struct CoachChatView: View {
                     .padding(.bottom, 6)
             }
         }
+        .swipeToDismiss()
     }
 
     // MARK: - 教练 header (头像 + 名字 + 在线状态 + 历史 chip)

@@ -35,3 +35,26 @@ enum AppAnimation {
     static let pulseLive: Animation = .easeInOut(duration: 0.75).repeatForever(autoreverses: true)
     static let pulseSoft: Animation = .easeInOut(duration: 1.0).repeatForever(autoreverses: true)
 }
+
+private struct SwipeToDismissModifier: ViewModifier {
+    @Environment(\.presentationMode) private var presentationMode
+
+    func body(content: Content) -> some View {
+        content
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 24, coordinateSpace: .local)
+                    .onEnded { value in
+                        guard value.translation.height > 90,
+                              abs(value.translation.width) < 80 else { return }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        presentationMode.wrappedValue.dismiss()
+                    }
+            )
+    }
+}
+
+extension View {
+    func swipeToDismiss() -> some View {
+        modifier(SwipeToDismissModifier())
+    }
+}

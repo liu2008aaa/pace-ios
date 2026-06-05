@@ -73,6 +73,7 @@ struct ShareView: View {
             .padding(.horizontal, 14)
             .padding(.bottom, 4)   // 12 → 4: 安全区已留出 ~34pt home indicator 空间, 自加 4pt 微调
         }
+        .swipeToDismiss()
     }
 
     // MARK: - 顶部条

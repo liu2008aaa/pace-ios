@@ -18,6 +18,7 @@ struct IdleHome: View {
     //         fullScreenCover 层, engine 内部切换显示哪屏.
     @EnvironmentObject var engine: RunSessionEngine
     @EnvironmentObject var store: RunSessionStore
+    @AppStorage("pace.profile.displayName") private var displayName: String = "跑者"
 
     // v0.4.2.1: 本周节奏卡 → fullScreenCover WeekHistoryView (周历史)
     @State private var showWeekHistory = false
@@ -151,7 +152,7 @@ struct IdleHome: View {
     // MARK: - Greeting section (上午好 + weather)
     private var greetingSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("\(greetingPrefix),\(MockData.User.displayName)")
+            Text("\(greetingPrefix),\(displayName)")
                 .font(.system(size: 21, weight: .semibold))
                 .foregroundColor(Theme.text1)
                 .kerning(0.76)
@@ -164,34 +165,34 @@ struct IdleHome: View {
     // MARK: - Weather row
     private var weatherRow: some View {
         HStack(spacing: 6) {
-            Text(MockData.Weather.city)
+            Text("本机记录")
                 .font(PaceFont.cn(size: 9.5))
                 .foregroundColor(Theme.text2)
                 .kerning(1.5)
             Text("·")
                 .font(PaceFont.cn(size: 9.5))
                 .foregroundColor(Theme.text3)
-            Text(MockData.Weather.condition)
+            Text("\(store.records.count) 次跑步")
                 .font(PaceFont.cn(size: 9.5))
                 .foregroundColor(Theme.text2)
                 .kerning(1.5)
             Text("·")
                 .font(PaceFont.cn(size: 9.5))
                 .foregroundColor(Theme.text3)
-            Text("\(MockData.Weather.tempC)°C")
+            Text(String(format: "%.1f km", totalDistanceKm))
                 .font(PaceFont.mono(size: 9.5))
                 .foregroundColor(Theme.text2)
             Text("·")
                 .font(PaceFont.cn(size: 9.5))
                 .foregroundColor(Theme.text3)
-            Text(MockData.Weather.wind)
+            Text(lastRunSummary)
                 .font(PaceFont.cn(size: 9.5))
                 .foregroundColor(Theme.text2)
                 .kerning(1.5)
             Text("·")
                 .font(PaceFont.cn(size: 9.5))
                 .foregroundColor(Theme.text3)
-            Text(MockData.Weather.suitability)
+            Text("READY")
                 .font(PaceFont.cn(size: 9.5))
                 .foregroundColor(Theme.accent)
                 .kerning(1.5)
@@ -226,29 +227,29 @@ struct IdleHome: View {
         HStack(spacing: 7) {
             DialCard(
                 cornerMark: "01",
-                value: "\(MockData.Today.readiness)",
-                unit: "/100",
-                label: "状态",
-                meta: "↑ \(MockData.Today.readinessDelta) vs 昨",
-                percent: Double(MockData.Today.readiness),
+                value: String(format: "%.1f", store.thisWeekDistanceKm),
+                unit: "km",
+                label: "本周",
+                meta: "\(store.thisWeekRuns) RUNS",
+                percent: weekProgressPercent,
                 state: .good
             )
             DialCard(
                 cornerMark: "02",
-                value: String(format: "%.1f", MockData.Today.strain),
-                unit: "/21",
-                label: "负荷",
-                meta: MockData.Today.strainStatus,
-                percent: MockData.Today.strain / 21 * 100,
-                state: .warn
+                value: lastRunDistanceText,
+                unit: "km",
+                label: "上次",
+                meta: lastRunPaceText,
+                percent: lastRunProgressPercent,
+                state: store.records.isEmpty ? .empty : .good
             )
             DialCard(
                 cornerMark: "03",
-                value: "\(MockData.Today.sleepPercent)%",
-                unit: MockData.Today.sleepHours,
-                label: "睡眠",
-                meta: "↑ \(MockData.Today.sleepDelta)%",
-                percent: Double(MockData.Today.sleepPercent),
+                value: String(format: "%.1f", totalDistanceKm),
+                unit: "km",
+                label: "累计",
+                meta: "\(store.records.count) TOTAL",
+                percent: totalProgressPercent,
                 state: .good
             )
         }
@@ -315,21 +316,63 @@ struct IdleHome: View {
             .foregroundColor(Theme.accent)
     }
 
-    // MARK: - AI 文案带高亮（"负荷偏高" 显示金色）
+    private var totalDistanceKm: Double {
+        store.records.reduce(0) { $0 + $1.distanceKm }
+    }
+
+    private var lastRecord: RunRecord? {
+        store.records.first
+    }
+
+    private var lastRunSummary: String {
+        guard let record = lastRecord else { return "暂无跑步记录" }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "M月d日"
+        return "\(f.string(from: record.startDate)) · \(String(format: "%.2f", record.distanceKm))km"
+    }
+
+    private var lastRunDistanceText: String {
+        guard let record = lastRecord else { return "—" }
+        return String(format: "%.2f", record.distanceKm)
+    }
+
+    private var lastRunPaceText: String {
+        guard let record = lastRecord else { return "NO RUN" }
+        return "\(record.paceDisplay)/km"
+    }
+
+    private var weekProgressPercent: Double {
+        min(100, (store.thisWeekDistanceKm / 30.0) * 100)
+    }
+
+    private var lastRunProgressPercent: Double {
+        guard let record = lastRecord else { return 0 }
+        return min(100, (record.distanceKm / 10.0) * 100)
+    }
+
+    private var totalProgressPercent: Double {
+        min(100, (totalDistanceKm / 100.0) * 100)
+    }
+
+    // MARK: - 真实记录摘要
     private var aiText: Text {
-        let raw = MockData.Today.aiSuggestion
-        let highlight = MockData.Today.aiHighlight
-
-        guard let range = raw.range(of: highlight) else {
-            return Text(raw)
+        guard let record = lastRecord else {
+            return Text("完成首次跑步后，这里会根据你的真实记录生成摘要。")
         }
-        let before = String(raw[..<range.lowerBound])
-        let mid = String(raw[range])
-        let after = String(raw[range.upperBound...])
-
-        return Text(before)
-            + Text(mid).foregroundColor(Theme.gold).fontWeight(.semibold)
-            + Text(after)
+        return Text("上次跑了 ")
+            + Text(String(format: "%.2f km", record.distanceKm))
+                .foregroundColor(Theme.accent)
+                .fontWeight(.semibold)
+            + Text("，平均配速 ")
+            + Text(record.paceDisplay)
+                .foregroundColor(Theme.accent)
+                .fontWeight(.semibold)
+            + Text("。本周累计 ")
+            + Text(String(format: "%.1f km", store.thisWeekDistanceKm))
+                .foregroundColor(Theme.accent)
+                .fontWeight(.semibold)
+            + Text("。")
     }
 }
 

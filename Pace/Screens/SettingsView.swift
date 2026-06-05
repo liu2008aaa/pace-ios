@@ -14,9 +14,11 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject var store: RunSessionStore
+    @AppStorage("pace.profile.displayName") private var displayName: String = "跑者"
+    @AppStorage("pace.profile.handle") private var handle: String = "@runner"
 
     private var profileMeta: String {
-        guard !store.records.isEmpty else { return MockData.Settings.profileMeta }
+        guard !store.records.isEmpty else { return "完成首次跑步后生成记录摘要" }
         let totalKm = store.records.reduce(0) { $0 + $1.distanceKm }
         return String(format: "已跑 %.1f km · 连续 %d 天",
                       totalKm,
@@ -42,6 +44,7 @@ struct SettingsView: View {
                 .padding(.bottom, 6)
             }
         }
+        .swipeToDismiss()
     }
 
     // MARK: - 顶部条 (设置 + 关闭 ✕)
@@ -94,9 +97,8 @@ struct SettingsView: View {
                 MonogramDots()
                     .frame(width: 44, height: 44)
 
-                // L. 字母组
                 HStack(spacing: 0) {
-                    Text("L")
+                    Text(profileInitial)
                         .font(.system(size: 22, weight: .heavy))
                         .foregroundColor(Theme.accent)
                     Text(".")
@@ -109,14 +111,18 @@ struct SettingsView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
-                    Text(MockData.Settings.userName)
+                    TextField("名字", text: $displayName)
                         .font(PaceFont.cn(size: 15, weight: .bold))
                         .foregroundColor(Theme.text1)
-                        .kerning(0.4)
-                    Text(MockData.Settings.userHandle)
+                        .accentColor(Theme.accent)
+                        .frame(maxWidth: 110)
+                    TextField("@handle", text: $handle)
                         .font(PaceFont.mono(size: 10, weight: .medium))
                         .foregroundColor(Theme.text4)
-                        .kerning(0.4)
+                        .accentColor(Theme.accent)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                        .frame(maxWidth: 90)
                 }
                 Text(profileMeta)
                     .font(PaceFont.cn(size: 11, weight: .medium))
@@ -138,6 +144,11 @@ struct SettingsView: View {
                 .stroke(Theme.hairlineBright, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var profileInitial: String {
+        let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return String(trimmed.first ?? "跑")
     }
 
     // MARK: - section

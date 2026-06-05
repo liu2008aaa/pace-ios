@@ -16,6 +16,7 @@ struct FirstRunHomeView: View {
     @Environment(\.presentationMode) private var presentationMode
     @EnvironmentObject var engine: RunSessionEngine
     @EnvironmentObject var store: RunSessionStore
+    @AppStorage("pace.profile.displayName") private var displayName: String = "跑者"
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -84,20 +85,20 @@ struct FirstRunHomeView: View {
     // MARK: - 欢迎 (欢迎，刘宇 + 天气)
     private var greetingSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(MockData.FirstRun.welcome)
+            Text("欢迎，\(displayName)")
                 .font(.system(size: 21, weight: .semibold))
                 .foregroundColor(Theme.text1)
                 .kerning(0.76)
 
             HStack(spacing: 6) {
-                Text(MockData.FirstRun.weather)
+                Text("本地记录 · 待首次跑步")
                     .font(PaceFont.cn(size: 10))
                     .foregroundColor(Theme.text2)
                     .kerning(1.5)
                 Text("·")
                     .font(PaceFont.cn(size: 10))
                     .foregroundColor(Theme.text4)
-                Text(MockData.FirstRun.weatherTag)
+                Text("准备就绪")
                     .font(PaceFont.cn(size: 10))
                     .foregroundColor(Theme.accent)
                     .kerning(1.5)

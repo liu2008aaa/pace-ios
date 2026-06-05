@@ -51,6 +51,30 @@ struct WeekHistoryView: View {
     private var dotmapIntensities: [Double] {
         hasRealRuns ? store.recentDayIntensities(days: 84) : MockData.WeekHistory.dotmapDays
     }
+    private var realSummaryRows: [(title: String, value: String, note: String, accent: Bool)] {
+        guard hasRealRuns else { return [] }
+        let longest = store.records.max(by: { $0.distanceKm < $1.distanceKm })
+        let fastest = store.records
+            .filter { $0.avgPaceSecondsPerKm > 0 }
+            .min(by: { $0.avgPaceSecondsPerKm < $1.avgPaceSecondsPerKm })
+        let hrs = store.records.compactMap { $0.avgHR }
+        let avgHR = hrs.isEmpty ? nil : Int(round(Double(hrs.reduce(0, +)) / Double(hrs.count)))
+
+        return [
+            ("最长距离",
+             longest.map { String(format: "%.2f km", $0.distanceKm) } ?? "—",
+             "本地记录",
+             true),
+            ("最快配速",
+             fastest?.paceDisplay ?? "—",
+             "平均配速",
+             true),
+            ("平均心率",
+             avgHR.map { "\($0) BPM" } ?? "—",
+             "有心率记录",
+             false),
+        ]
+    }
 
     var body: some View {
         ZStack {
@@ -68,6 +92,7 @@ struct WeekHistoryView: View {
                 .padding(.bottom, 6)
             }
         }
+        .swipeToDismiss()
     }
 
     @ViewBuilder
@@ -241,35 +266,54 @@ struct WeekHistoryView: View {
         }
     }
 
-    // MARK: - 本周恢复 strip (7 天 day-seg + 平均分)
+    // MARK: - 本周分布 / 恢复 strip
     private var weekRecoveryStrip: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("本周恢复")
+                Text(hasRealRuns ? "本周分布" : "本周恢复")
                     .font(PaceFont.cn(size: 11, weight: .medium))
                     .foregroundColor(Theme.text3)
                     .kerning(2.6)
                 Spacer()
-                HStack(spacing: 4) {
-                    Text("平均")
+                if hasRealRuns {
+                    Text("总时长 \(weekDuration)")
                         .font(PaceFont.cn(size: 11, weight: .medium))
                         .foregroundColor(Theme.text3)
-                        .kerning(1.6)
-                    Text("\(MockData.WeekHistory.recoveryAvg)")
-                        .font(PaceFont.mono(size: 12, weight: .bold))
-                        .foregroundColor(Theme.accent)
-                    Text("/100")
-                        .font(PaceFont.mono(size: 11, weight: .regular))
-                        .foregroundColor(Theme.text4)
+                        .kerning(1.2)
+                } else {
+                    HStack(spacing: 4) {
+                        Text("平均")
+                            .font(PaceFont.cn(size: 11, weight: .medium))
+                            .foregroundColor(Theme.text3)
+                            .kerning(1.6)
+                        Text("\(MockData.WeekHistory.recoveryAvg)")
+                            .font(PaceFont.mono(size: 12, weight: .bold))
+                            .foregroundColor(Theme.accent)
+                        Text("/100")
+                            .font(PaceFont.mono(size: 11, weight: .regular))
+                            .foregroundColor(Theme.text4)
+                    }
                 }
             }
 
-            HStack(spacing: 4) {
-                ForEach(0..<MockData.WeekHistory.recoveryDays.count, id: \.self) { i in
-                    DaySegment(day: MockData.WeekHistory.recoveryDays[i])
+            if hasRealRuns {
+                HStack(spacing: 4) {
+                    let weekKm = store.dailyDistancesThisWeek()
+                    ForEach(0..<weekKm.count, id: \.self) { i in
+                        WeekKmSegment(label: MockData.WeekRhythm.dayLabels[i],
+                                      km: weekKm[i],
+                                      today: i == MockData.WeekRhythm.todayIndex)
+                    }
                 }
+                .frame(height: 50)
+            } else {
+                HStack(spacing: 4) {
+                    ForEach(0..<MockData.WeekHistory.recoveryDays.count, id: \.self) { i in
+                        DaySegment(day: MockData.WeekHistory.recoveryDays[i])
+                    }
+                }
+                .frame(height: 50)
             }
-            .frame(height: 50)
         }
     }
 
@@ -384,6 +428,36 @@ private struct PaceMonoLine {
     let main: String
     let sub: String
     var subIsCn: Bool = false
+}
+
+private struct WeekKmSegment: View {
+    let label: String
+    let km: Double
+    let today: Bool
+
+    private var active: Bool { km > 0 }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(label)
+                .font(PaceFont.cn(size: 9, weight: .medium))
+                .foregroundColor(today ? Theme.accent : active ? Theme.text2 : Theme.text4)
+                .kerning(0.5)
+            Text(active ? String(format: "%.1f", km) : "—")
+                .font(PaceFont.mono(size: 12, weight: .bold))
+                .foregroundColor(active ? Theme.text1 : Theme.text4)
+                .kerning(-0.3)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 50)
+        .background(active ? Theme.accent.opacity(0.12) : Color.white.opacity(0.025))
+        .overlay(
+            RoundedRectangle(cornerRadius: 5)
+                .stroke(today ? Theme.accent : Theme.hairlineBright, lineWidth: today ? 1.2 : 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 5))
+        .shadow(color: today ? Theme.accent.opacity(0.28) : .clear, radius: 8)
+    }
 }
 
 // MARK: - 单个 day 卡 (recovery strip)
@@ -746,34 +820,54 @@ extension WeekHistoryView {
                 .kerning(2.6)
 
             VStack(spacing: 0) {
-                ForEach(0..<MockData.MonthlyStats.pbs.count, id: \.self) { i in
-                    let row = MockData.MonthlyStats.pbs[i]
-                    HStack {
-                        Text(row.distance)
-                            .font(PaceFont.cn(size: 13, weight: .medium))
-                            .foregroundColor(Theme.text1)
-                            .kerning(0.6)
-                        Spacer()
-                        Text(row.time)
-                            .font(PaceFont.mono(size: 15, weight: .bold))
-                            .foregroundColor(row.isPb ? Theme.accent : Theme.text1)
-                            .kerning(-0.3)
-                        Spacer()
-                        Text(row.note)
-                            .font(PaceFont.mono(size: 10, weight: .medium))
-                            .foregroundColor(row.isPb ? Theme.text3 : Theme.text4)
-                            .kerning(1.0)
-                            .frame(minWidth: 56, alignment: .trailing)
+                if hasRealRuns {
+                    ForEach(0..<realSummaryRows.count, id: \.self) { i in
+                        let row = realSummaryRows[i]
+                        HStack {
+                            Text(row.title)
+                                .font(PaceFont.cn(size: 13, weight: .medium))
+                                .foregroundColor(Theme.text1)
+                                .kerning(0.6)
+                            Spacer()
+                            Text(row.value)
+                                .font(PaceFont.mono(size: 15, weight: .bold))
+                                .foregroundColor(row.accent ? Theme.accent : Theme.text1)
+                                .kerning(-0.3)
+                            Spacer()
+                            Text(row.note)
+                                .font(PaceFont.cn(size: 10, weight: .medium))
+                                .foregroundColor(Theme.text4)
+                                .kerning(1.0)
+                                .frame(minWidth: 56, alignment: .trailing)
+                        }
+                        .padding(.vertical, 9)
+                        .padding(.horizontal, 12)
+                        .overlay(Rectangle().fill(Theme.hairline).frame(height: 0.5), alignment: .bottom)
                     }
-                    .padding(.vertical, 9)
-                    .padding(.horizontal, 12)
-                    .overlay(
-                        Rectangle()
-                            .fill(Theme.hairline)
-                            .frame(height: 0.5),
-                        alignment: .bottom
-                    )
-                    .opacity(i == MockData.MonthlyStats.pbs.count - 1 ? 1 : 1)
+                } else {
+                    ForEach(0..<MockData.MonthlyStats.pbs.count, id: \.self) { i in
+                        let row = MockData.MonthlyStats.pbs[i]
+                        HStack {
+                            Text(row.distance)
+                                .font(PaceFont.cn(size: 13, weight: .medium))
+                                .foregroundColor(Theme.text1)
+                                .kerning(0.6)
+                            Spacer()
+                            Text(row.time)
+                                .font(PaceFont.mono(size: 15, weight: .bold))
+                                .foregroundColor(row.isPb ? Theme.accent : Theme.text1)
+                                .kerning(-0.3)
+                            Spacer()
+                            Text(row.note)
+                                .font(PaceFont.mono(size: 10, weight: .medium))
+                                .foregroundColor(row.isPb ? Theme.text3 : Theme.text4)
+                                .kerning(1.0)
+                                .frame(minWidth: 56, alignment: .trailing)
+                        }
+                        .padding(.vertical, 9)
+                        .padding(.horizontal, 12)
+                        .overlay(Rectangle().fill(Theme.hairline).frame(height: 0.5), alignment: .bottom)
+                    }
                 }
             }
             .background(Theme.bgCard)
@@ -971,16 +1065,27 @@ extension WeekHistoryView {
                     .foregroundColor(Theme.text3)
                     .kerning(2.6)
                 Spacer()
-                Text("\(MockData.YearHistory.yearPBs.count) ITEMS")
+                Text("\(hasRealRuns ? realSummaryRows.count : MockData.YearHistory.yearPBs.count) ITEMS")
                     .font(PaceFont.mono(size: 9, weight: .medium))
                     .foregroundColor(Theme.text4)
                     .kerning(2.0)
             }
 
             VStack(spacing: 0) {
-                ForEach(0..<MockData.YearHistory.yearPBs.count, id: \.self) { i in
-                    yearPbRow(MockData.YearHistory.yearPBs[i],
-                              isLast: i == MockData.YearHistory.yearPBs.count - 1)
+                if hasRealRuns {
+                    ForEach(0..<realSummaryRows.count, id: \.self) { i in
+                        let row = realSummaryRows[i]
+                        yearPbRow((distance: row.title,
+                                   time: row.value,
+                                   delta: row.note,
+                                   isPb: row.accent),
+                                  isLast: i == realSummaryRows.count - 1)
+                    }
+                } else {
+                    ForEach(0..<MockData.YearHistory.yearPBs.count, id: \.self) { i in
+                        yearPbRow(MockData.YearHistory.yearPBs[i],
+                                  isLast: i == MockData.YearHistory.yearPBs.count - 1)
+                    }
                 }
             }
             .background(Theme.bgCard)

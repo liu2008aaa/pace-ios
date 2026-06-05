@@ -71,6 +71,7 @@ struct RouteDetailView: View {
                 .padding(.bottom, 6)
             }
         }
+        .swipeToDismiss()
     }
 
     // MARK: - 顶部条

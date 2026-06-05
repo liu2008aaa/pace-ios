@@ -23,6 +23,7 @@
 //
 
 import SwiftUI
+import CoreLocation
 
 struct PostRunView: View {
     @EnvironmentObject var engine: RunSessionEngine
@@ -67,6 +68,67 @@ struct PostRunView: View {
 
     private var routePoints: [RoutePoint] {
         engine.lastRecord?.routePoints ?? []
+    }
+
+    private var routeCoordinateLabel: String {
+        guard let first = routePoints.first else { return "无路线" }
+        return String(format: "%.4f°N · %.4f°E", first.lat, first.lng)
+    }
+
+    private var paceDeltaLabel: String {
+        guard !splitPaceSeconds.isEmpty else { return "GPS 数据不足" }
+        guard let record = engine.lastRecord else { return "记录完成" }
+        return record.avgHR.map { "AVG HR \($0)" } ?? "真实记录"
+    }
+
+    private var splitPaceSeconds: [Int] {
+        guard routePoints.count >= 2 else { return [] }
+        var splits: [Int] = []
+        var accumulatedMeters: Double = 0
+        var nextKm: Double = 1000
+        var segmentStartTime = routePoints[0].timestamp
+
+        for i in 1..<routePoints.count {
+            let previous = routePoints[i - 1]
+            let current = routePoints[i]
+            let p = CLLocation(latitude: previous.lat, longitude: previous.lng)
+            let c = CLLocation(latitude: current.lat, longitude: current.lng)
+            let distance = c.distance(from: p)
+            guard distance > 0 else { continue }
+
+            let before = accumulatedMeters
+            let after = accumulatedMeters + distance
+
+            while after >= nextKm {
+                let ratio = max(0, min(1, (nextKm - before) / distance))
+                let splitTime = previous.timestamp + (current.timestamp - previous.timestamp) * ratio
+                splits.append(max(1, Int(round(splitTime - segmentStartTime))))
+                segmentStartTime = splitTime
+                nextKm += 1000
+            }
+
+            accumulatedMeters = after
+        }
+
+        return splits
+    }
+
+    private var paceChartY: [CGFloat] {
+        guard !splitPaceSeconds.isEmpty else {
+            return [32, 32, 32, 32, 32]
+        }
+        let values = Array(splitPaceSeconds.prefix(5))
+        let minPace = values.min() ?? 1
+        let maxPace = values.max() ?? minPace
+        let span = max(1, maxPace - minPace)
+        var yValues: [CGFloat] = values.map { pace in
+            let ratio = Double(pace - minPace) / Double(span)
+            return CGFloat(14 + ratio * 34)
+        }
+        while yValues.count < 5 {
+            yValues.append(yValues.last ?? 32)
+        }
+        return yValues
     }
 
     var body: some View {
@@ -152,7 +214,7 @@ struct PostRunView: View {
                 aiToolButton(icon: "↻", label: "换一句")
                 aiToolButton(icon: "✏", label: "编辑")
                 Spacer()
-                Text(MockData.PostRun.aiCounter)
+                Text("RUN · \(routePoints.count) GPS")
                     .font(PaceFont.mono(size: 9, weight: .medium))
                     .foregroundColor(Theme.text4)
                     .kerning(0.4)
@@ -191,12 +253,23 @@ struct PostRunView: View {
 
     // AI 文案带高亮的 Text+Text 拼接
     private var aiText: Text {
-        Text(MockData.PostRun.aiBefore)
+        guard let record = engine.lastRecord else {
+            return Text("本次跑步已保存。")
+                .foregroundColor(Theme.text1)
+        }
+
+        let hrText = record.avgHR.map { "，平均心率 \($0) BPM" } ?? ""
+        return Text("本次跑了 ")
             .foregroundColor(Theme.text1) +
-        Text(MockData.PostRun.aiHighlight)
+        Text(String(format: "%.2f km", record.distanceKm))
             .foregroundColor(Theme.accent)
             .fontWeight(.semibold) +
-        Text(MockData.PostRun.aiAfter)
+        Text("，用时 \(record.durationDisplay)，平均配速 ")
+            .foregroundColor(Theme.text1) +
+        Text(record.paceDisplay)
+            .foregroundColor(Theme.accent)
+            .fontWeight(.semibold) +
+        Text(hrText + "。")
             .foregroundColor(Theme.text2)
     }
 
@@ -241,7 +314,7 @@ struct PostRunView: View {
                         .fill(Theme.accent)
                         .frame(width: 5, height: 5)
                         .shadow(color: Theme.accent.opacity(0.6), radius: 3)
-                    Text(MockData.PostRun.coords)
+                    Text(routeCoordinateLabel)
                         .font(PaceFont.mono(size: 9, weight: .medium))
                         .foregroundColor(Theme.text3)
                         .kerning(1.2)
@@ -275,21 +348,21 @@ struct PostRunView: View {
     private var paceChart: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("每公里配速")
+                Text(splitPaceSeconds.isEmpty ? "配速记录" : "每公里配速")
                     .font(PaceFont.cn(size: 11, weight: .medium))
                     .foregroundColor(Theme.text3)
                     .kerning(2.4)
 
                 Spacer()
 
-                Text(MockData.PostRun.lastKmDelta)
+                Text(paceDeltaLabel)
                     .font(PaceFont.mono(size: 10, weight: .semibold))
                     .foregroundColor(Theme.accent)
                     .kerning(0.6)
             }
 
             // v0.4.0.7: 100 → 130 进一步放大, 减少底部 void
-            PaceChartView(splitsY: PaceChartConstants.splitsY, endPulse: endPulse)
+            PaceChartView(splitsY: paceChartY, endPulse: endPulse)
                 .frame(height: 130)
         }
     }
