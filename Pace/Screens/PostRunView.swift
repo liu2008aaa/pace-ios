@@ -29,6 +29,7 @@ struct PostRunView: View {
 
     @State private var endPulse = false  // 路线终点呼吸标记
     @State private var showShare = false  // v0.4.1: 分享按钮 → ShareView
+    @State private var showRouteDetail = false
 
     // MARK: - v0.5.0 显示数据 (engine.lastRecord 有则真, 无则 MockData)
 
@@ -62,6 +63,10 @@ struct PostRunView: View {
         f.locale = Locale(identifier: "zh_CN")
         f.dateFormat = "a h:mm"
         return f.string(from: r.startDate)
+    }
+
+    private var routePoints: [RoutePoint] {
+        engine.lastRecord?.routePoints ?? []
     }
 
     var body: some View {
@@ -103,6 +108,11 @@ struct PostRunView: View {
         // v0.4.1: 分享按钮 → ShareView 全屏接管
         .fullScreenCover(isPresented: $showShare) {
             ShareView()
+                .environmentObject(engine)
+        }
+        .fullScreenCover(isPresented: $showRouteDetail) {
+            RouteDetailView()
+                .environmentObject(engine)
         }
     }
 
@@ -207,9 +217,15 @@ struct PostRunView: View {
             // 深色底
             Color(hex: 0x050708)
 
-            // 网格 + 路线 SVG 翻译
-            RouteMapView()
-                .frame(height: 140)
+            if routePoints.count >= 2 {
+                RoutePolylineView(points: routePoints, accentOnly: true)
+                    .frame(height: 140)
+                    .padding(12)
+            } else {
+                // 网格 + 路线 SVG 翻译
+                RouteMapView()
+                    .frame(height: 140)
+            }
 
             // 顶左 ROUTE · 5.42 KM
             HStack {
@@ -239,6 +255,11 @@ struct PostRunView: View {
                 .stroke(Theme.hairlineBright, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .contentShape(Rectangle())
+        .onTapGesture {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            showRouteDetail = true
+        }
     }
 
     // MARK: - 三列主统计
@@ -588,6 +609,83 @@ private struct RouteShape: Shape {
         p.addCurve(to: vp(230, 30), control1: vp(170, 36), control2: vp(200, 26))
         p.addCurve(to: vp(254, 60), control1: vp(260, 34), control2: vp(258, 46))
         return p
+    }
+}
+
+struct RoutePolylineView: View {
+    let points: [RoutePoint]
+    var accentOnly: Bool = false
+
+    var body: some View {
+        GeometryReader { geo in
+            let route = normalizedPoints(in: geo.size)
+            ZStack {
+                Path { path in
+                    guard let first = route.first else { return }
+                    path.move(to: first)
+                    for point in route.dropFirst() {
+                        path.addLine(to: point)
+                    }
+                }
+                .stroke(Theme.accent.opacity(0.18),
+                        style: StrokeStyle(lineWidth: accentOnly ? 7 : 9,
+                                           lineCap: .round,
+                                           lineJoin: .round))
+
+                Path { path in
+                    guard let first = route.first else { return }
+                    path.move(to: first)
+                    for point in route.dropFirst() {
+                        path.addLine(to: point)
+                    }
+                }
+                .stroke(accentOnly ? Theme.accent : Theme.pace4,
+                        style: StrokeStyle(lineWidth: accentOnly ? 2.2 : 3,
+                                           lineCap: .round,
+                                           lineJoin: .round))
+                .shadow(color: Theme.accent.opacity(0.45), radius: 5)
+
+                if let first = route.first {
+                    ZStack {
+                        Circle().stroke(Theme.accent, lineWidth: 1.5).frame(width: 12, height: 12)
+                        Circle().fill(Theme.accent).frame(width: 5, height: 5)
+                    }
+                    .position(first)
+                }
+
+                if let last = route.last {
+                    ZStack {
+                        Circle().stroke(Theme.accentBright.opacity(0.45), lineWidth: 0.8).frame(width: 18, height: 18)
+                        Circle().fill(Theme.accentBright).frame(width: 8, height: 8)
+                            .shadow(color: Theme.accentBright.opacity(0.7), radius: 6)
+                    }
+                    .position(last)
+                }
+            }
+        }
+    }
+
+    private func normalizedPoints(in size: CGSize) -> [CGPoint] {
+        guard !points.isEmpty else { return [] }
+        let lats = points.map { $0.lat }
+        let lngs = points.map { $0.lng }
+        guard let minLat = lats.min(), let maxLat = lats.max(),
+              let minLng = lngs.min(), let maxLng = lngs.max() else { return [] }
+
+        let latRange = max(maxLat - minLat, 0.00001)
+        let lngRange = max(maxLng - minLng, 0.00001)
+        let padding: CGFloat = 12
+        let drawW = max(1, size.width - padding * 2)
+        let drawH = max(1, size.height - padding * 2)
+
+        return points.map { point in
+            let xRatio = (point.lng - minLng) / lngRange
+            let yRatio = 1.0 - ((point.lat - minLat) / latRange)
+            return CGPoint(
+                x: padding + CGFloat(xRatio) * drawW,
+                y: padding + CGFloat(yRatio) * drawH
+            )
+        }
     }
 }
 

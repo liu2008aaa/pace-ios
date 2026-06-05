@@ -14,10 +14,43 @@ import SwiftUI
 
 struct WeekHistoryView: View {
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var store: RunSessionStore
 
     /// v0.4.3: 加 segment 切换支持 week / month / year (Phone 06 + 07 + placeholder)
     enum Segment { case week, month, year }
     @State private var segment: Segment = .week
+
+    private var hasRealRuns: Bool { !store.records.isEmpty }
+    private var weekDistanceKm: Double {
+        hasRealRuns ? store.thisWeekDistanceKm : MockData.WeekHistory.weekDistanceKm
+    }
+    private var weekRuns: Int {
+        hasRealRuns ? store.thisWeekRuns : MockData.WeekHistory.weekRuns
+    }
+    private var weekAvgPace: String {
+        hasRealRuns ? store.thisWeekAveragePaceDisplay : MockData.WeekHistory.weekAvgPace
+    }
+    private var weekDuration: String {
+        hasRealRuns ? store.thisWeekDurationDisplay : MockData.WeekHistory.weekTimeStr
+    }
+    private var weekDelta: String {
+        hasRealRuns ? store.thisWeekDeltaDisplay : "↑12%"
+    }
+    private var monthDelta: String {
+        hasRealRuns ? store.thisMonthDeltaDisplay : MockData.MonthlyStats.trendStr
+    }
+    private var yearDelta: String {
+        hasRealRuns ? store.thisYearDeltaDisplay : MockData.YearHistory.yearTrendStr
+    }
+    private var streakDays: Int {
+        hasRealRuns ? store.currentStreakDays() : MockData.WeekHistory.streakDays
+    }
+    private var weekBars: [(label: String, km: Double, current: Bool)] {
+        hasRealRuns ? store.lastFourWeekBars() : MockData.WeekHistory.weekBars
+    }
+    private var dotmapIntensities: [Double] {
+        hasRealRuns ? store.recentDayIntensities(days: 84) : MockData.WeekHistory.dotmapDays
+    }
 
     var body: some View {
         ZStack {
@@ -156,7 +189,7 @@ struct WeekHistoryView: View {
 
             HStack(alignment: .bottom, spacing: 8) {
                 HStack(alignment: .lastTextBaseline, spacing: 8) {
-                    Text(String(format: "%.1f", MockData.WeekHistory.weekDistanceKm))
+                    Text(String(format: "%.1f", weekDistanceKm))
                         .font(.system(size: 78, weight: .bold, design: .monospaced))
                         .foregroundColor(Theme.text1)
                         .kerning(-3.8)
@@ -169,10 +202,7 @@ struct WeekHistoryView: View {
 
                 // ↑12% chip
                 HStack(spacing: 2) {
-                    Text("↑")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Theme.accent)
-                    Text("12%")
+                    Text(weekDelta)
                         .font(PaceFont.mono(size: 12, weight: .semibold))
                         .foregroundColor(Theme.accent)
                 }
@@ -189,17 +219,17 @@ struct WeekHistoryView: View {
 
             // 副信息行
             HStack {
-                Text("\(MockData.WeekHistory.weekRuns) 次跑步")
+                Text("\(weekRuns) 次跑步")
                     .font(PaceFont.cn(size: 11, weight: .medium))
                     .foregroundColor(Theme.text3)
                     .kerning(1.8)
                 Spacer()
-                Text(MockData.WeekHistory.weekTimeStr)
+                Text(weekDuration)
                     .font(PaceFont.mono(size: 11, weight: .medium))
                     .foregroundColor(Theme.text3)
                 Spacer()
                 HStack(spacing: 0) {
-                    Text(MockData.WeekHistory.weekAvgPace)
+                    Text(weekAvgPace)
                         .font(PaceFont.mono(size: 11, weight: .semibold))
                         .foregroundColor(Theme.text3)
                     Text("/km")
@@ -271,7 +301,7 @@ struct WeekHistoryView: View {
             }
 
             // 12 行 × 7 列 grid
-            DotMapGrid(intensities: MockData.WeekHistory.dotmapDays)
+            DotMapGrid(intensities: dotmapIntensities)
         }
     }
 
@@ -290,7 +320,7 @@ struct WeekHistoryView: View {
                     .kerning(1.8)
             }
 
-            WeekBarsView(bars: MockData.WeekHistory.weekBars)
+            WeekBarsView(bars: weekBars)
                 .frame(height: 72)
         }
     }
@@ -300,12 +330,12 @@ struct WeekHistoryView: View {
         HStack(spacing: 8) {
             statCard(title: "平均配速",
                      valueLine: PaceMonoLine(
-                        main: MockData.WeekHistory.weekAvgPace,
+                        main: weekAvgPace,
                         sub: "/km"
                      ))
             statCard(title: "连续跑步",
                      valueLine: PaceMonoLine(
-                        main: "\(MockData.WeekHistory.streakDays)",
+                        main: "\(streakDays)",
                         sub: " 天",
                         subIsCn: true
                      ))
@@ -590,7 +620,7 @@ extension WeekHistoryView {
                     .font(PaceFont.cn(size: 14, weight: .medium))
                     .foregroundColor(Theme.text4)
                     .kerning(1.6)
-                Text(MockData.MonthlyStats.yearMonthCn)
+                Text(hasRealRuns ? store.currentMonthTitleCN() : MockData.MonthlyStats.yearMonthCn)
                     .font(PaceFont.cn(size: 12, weight: .semibold))
                     .foregroundColor(Theme.text1)
                     .kerning(2.4)
@@ -600,7 +630,7 @@ extension WeekHistoryView {
                     .kerning(1.6)
             }
             Spacer()
-            Text(MockData.MonthlyStats.yearMonthEn)
+            Text(hasRealRuns ? store.currentMonthTitleEN() : MockData.MonthlyStats.yearMonthEn)
                 .font(PaceFont.mono(size: 10, weight: .medium))
                 .foregroundColor(Theme.text3)
                 .kerning(2.4)
@@ -618,7 +648,7 @@ extension WeekHistoryView {
                     .padding(.bottom, 4)
 
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
-                    Text(String(format: "%.1f", MockData.MonthlyStats.distanceKm))
+                    Text(String(format: "%.1f", hasRealRuns ? store.thisMonthDistanceKm : MockData.MonthlyStats.distanceKm))
                         .font(.system(size: 54, weight: .bold, design: .monospaced))
                         .foregroundColor(Theme.text1)
                         .kerning(-2.4)
@@ -630,10 +660,10 @@ extension WeekHistoryView {
 
                 // ↑18% vs 4月 chip
                 HStack(spacing: 4) {
-                    Text(MockData.MonthlyStats.trendStr)
+                    Text(monthDelta)
                         .font(PaceFont.mono(size: 11, weight: .semibold))
                         .foregroundColor(Theme.accent)
-                    Text(MockData.MonthlyStats.trendCompare)
+                    Text(hasRealRuns ? "vs 上月" : MockData.MonthlyStats.trendCompare)
                         .font(PaceFont.cn(size: 10, weight: .medium))
                         .foregroundColor(Theme.text3)
                         .kerning(0.6)
@@ -653,7 +683,9 @@ extension WeekHistoryView {
 
             // 进度环 78pt 显示 progress %
             MonthRingProgress(
-                progress: MockData.MonthlyStats.progress,
+                progress: hasRealRuns
+                    ? min(1.0, store.thisMonthDistanceKm / MockData.MonthlyStats.goalKm)
+                    : MockData.MonthlyStats.progress,
                 goalKm: MockData.MonthlyStats.goalKm
             )
             .frame(width: 96, height: 96)
@@ -675,10 +707,10 @@ extension WeekHistoryView {
                     .kerning(2.0)
             }
             CalendarHeatmap(
-                daysInMonth: MockData.MonthlyStats.daysInMonth,
-                startCol: MockData.MonthlyStats.startCol,
-                today: MockData.MonthlyStats.today,
-                intensities: MockData.MonthlyStats.runDayIntensities
+                daysInMonth: hasRealRuns ? store.daysInCurrentMonth() : MockData.MonthlyStats.daysInMonth,
+                startCol: hasRealRuns ? store.currentMonthStartColumnMondayFirst() : MockData.MonthlyStats.startCol,
+                today: hasRealRuns ? store.currentMonthToday() : MockData.MonthlyStats.today,
+                intensities: hasRealRuns ? store.dailyIntensityThisMonth() : MockData.MonthlyStats.runDayIntensities
             )
         }
     }
@@ -782,7 +814,7 @@ extension WeekHistoryView {
                     .font(PaceFont.cn(size: 14, weight: .medium))
                     .foregroundColor(Theme.text4)
                     .kerning(1.6)
-                Text(MockData.YearHistory.yearCn)
+                Text(hasRealRuns ? store.currentYearTitleCN() : MockData.YearHistory.yearCn)
                     .font(PaceFont.cn(size: 12, weight: .semibold))
                     .foregroundColor(Theme.text1)
                     .kerning(2.4)
@@ -792,7 +824,7 @@ extension WeekHistoryView {
                     .kerning(1.6)
             }
             Spacer()
-            Text(MockData.YearHistory.yearEn)
+            Text(hasRealRuns ? store.currentYearTitleEN() : MockData.YearHistory.yearEn)
                 .font(PaceFont.mono(size: 10, weight: .medium))
                 .foregroundColor(Theme.text3)
                 .kerning(2.4)
@@ -810,7 +842,7 @@ extension WeekHistoryView {
                     .padding(.bottom, 4)
 
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
-                    Text(String(format: "%.1f", MockData.YearHistory.yearKm))
+                    Text(String(format: "%.1f", hasRealRuns ? store.thisYearDistanceKm : MockData.YearHistory.yearKm))
                         .font(.system(size: 54, weight: .bold, design: .monospaced))
                         .foregroundColor(Theme.text1)
                         .kerning(-2.4)
@@ -822,10 +854,10 @@ extension WeekHistoryView {
 
                 // ↑18% vs 2025 chip
                 HStack(spacing: 4) {
-                    Text(MockData.YearHistory.yearTrendStr)
+                    Text(yearDelta)
                         .font(PaceFont.mono(size: 11, weight: .semibold))
                         .foregroundColor(Theme.accent)
-                    Text(MockData.YearHistory.yearTrendCompare)
+                    Text(hasRealRuns ? "vs 去年" : MockData.YearHistory.yearTrendCompare)
                         .font(PaceFont.cn(size: 10, weight: .medium))
                         .foregroundColor(Theme.text3)
                         .kerning(0.6)
@@ -847,12 +879,12 @@ extension WeekHistoryView {
             VStack(alignment: .trailing, spacing: 14) {
                 yearSubStat(
                     label: MockData.YearHistory.runDaysLabel,
-                    value: "\(MockData.YearHistory.runDays)",
+                    value: "\(hasRealRuns ? store.thisYearRunDays : MockData.YearHistory.runDays)",
                     unit: "天"
                 )
                 yearSubStat(
                     label: MockData.YearHistory.avgPaceLabel,
-                    value: MockData.YearHistory.avgPaceStr,
+                    value: hasRealRuns ? store.thisYearAveragePaceDisplay : MockData.YearHistory.avgPaceStr,
                     unit: "/km"
                 )
             }
@@ -895,10 +927,14 @@ extension WeekHistoryView {
                     .kerning(2.0)
             }
             YearMonthlyHeatmap(
-                monthlyKm: MockData.YearHistory.monthlyKm,
+                monthlyKm: hasRealRuns ? store.monthlyDistancesThisYear() : MockData.YearHistory.monthlyKm,
                 monthLabels: MockData.YearHistory.monthLabelsEn,
-                currentMonth: MockData.YearHistory.currentMonth,
-                maxKm: MockData.YearHistory.monthlyKmMax
+                currentMonth: hasRealRuns
+                    ? Calendar(identifier: .gregorian).component(.month, from: Date())
+                    : MockData.YearHistory.currentMonth,
+                maxKm: hasRealRuns
+                    ? max(store.monthlyDistancesThisYear().max() ?? 1, 1)
+                    : MockData.YearHistory.monthlyKmMax
             )
             .frame(height: 70)
         }

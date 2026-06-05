@@ -13,6 +13,15 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var store: RunSessionStore
+
+    private var profileMeta: String {
+        guard !store.records.isEmpty else { return MockData.Settings.profileMeta }
+        let totalKm = store.records.reduce(0) { $0 + $1.distanceKm }
+        return String(format: "已跑 %.1f km · 连续 %d 天",
+                      totalKm,
+                      store.currentStreakDays())
+    }
 
     var body: some View {
         ZStack {
@@ -109,7 +118,7 @@ struct SettingsView: View {
                         .foregroundColor(Theme.text4)
                         .kerning(0.4)
                 }
-                Text(MockData.Settings.profileMeta)
+                Text(profileMeta)
                     .font(PaceFont.cn(size: 11, weight: .medium))
                     .foregroundColor(Theme.text2)
                     .kerning(0.8)
@@ -265,6 +274,7 @@ struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         SettingsView()
             .preferredColorScheme(.dark)
+            .environmentObject(RunSessionStore.shared)
     }
 }
 #endif

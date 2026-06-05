@@ -139,15 +139,27 @@ struct PausedView: View {
                     .foregroundColor(Theme.text3)
                     .kerning(2.6)
                 Spacer()
-                Text(MockData.Paused.hrZoneLabel)
+                Text(hrZoneLabel)
                     .font(PaceFont.mono(size: 10, weight: .medium))
                     .foregroundColor(Theme.text3)
                     .kerning(1.6)
             }
-            HrZoneBar(markerPct: MockData.Paused.hrMarkerPct)
+            HrZoneBar(markerPct: hrZonePercent)
                 .frame(height: 16)
         }
         .opacity(0.55)
+    }
+
+    private var hrZonePercent: Double {
+        guard let hr = engine.currentHR else { return 0.0 }
+        let pct = Double(max(60, min(190, hr)) - 60) / Double(190 - 60)
+        return max(0.02, min(0.98, pct))
+    }
+
+    private var hrZoneLabel: String {
+        guard let hr = engine.currentHR else { return "— · 等待心率" }
+        let z = min(5, max(1, Int(hrZonePercent * 5) + 1))
+        return "Z\(z) · \(hr) BPM"
     }
 
     // MARK: - 双按钮 (继续 ▶ → engine.resume / 结束 ■ → 二次确认 → engine.end)

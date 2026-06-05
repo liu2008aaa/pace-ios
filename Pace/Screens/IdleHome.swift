@@ -17,17 +17,12 @@ struct IdleHome: View {
     //         判断是否要拉起全屏接管. 这样 PreRun/Running/Paused/PostRun 都用同一
     //         fullScreenCover 层, engine 内部切换显示哪屏.
     @EnvironmentObject var engine: RunSessionEngine
+    @EnvironmentObject var store: RunSessionStore
 
     // v0.4.2.1: 本周节奏卡 → fullScreenCover WeekHistoryView (周历史)
     @State private var showWeekHistory = false
-
-    /// engine.phase 离开 .idle 即拉起全屏 RunFlowView
-    private var isRunFlowActive: Binding<Bool> {
-        Binding(
-            get: { self.engine.phase != .idle },
-            set: { _ in /* engine 内部 acknowledge() 切回 .idle */ }
-        )
-    }
+    @State private var showSettings = false
+    @State private var showCoach = false
 
     // MARK: - Time-aware greeting prefix
     private var greetingPrefix: String {
@@ -79,18 +74,18 @@ struct IdleHome: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
         }
-        // v0.5.0: 单一全屏接管层 — RunFlowView 内部根据 engine.phase 切显示
-        // PreRunView / RunningView / PausedView / PostRunView. 用 fullScreenCover
-        // 是因为跑步是"接管屏" — 不应该有 navigation bar / back swipe.
-        .fullScreenCover(isPresented: isRunFlowActive) {
-            RunFlowView()
-                .environmentObject(engine)
-                .environmentObject(engine.store)
-        }
         // 本周节奏卡 → 全屏 WeekHistoryView (周历史完整页)
         // v0.4.2.1: 用户反馈 Phone 06 缺入口
         .fullScreenCover(isPresented: $showWeekHistory) {
             WeekHistoryView()
+                .environmentObject(store)
+        }
+        .fullScreenCover(isPresented: $showSettings) {
+            SettingsView()
+                .environmentObject(store)
+        }
+        .fullScreenCover(isPresented: $showCoach) {
+            CoachChatView()
         }
     }
 
@@ -101,10 +96,31 @@ struct IdleHome: View {
 
             Spacer()
 
+            settingsButton
+                .padding(.trailing, 8)
             coachChip
         }
         .padding(.horizontal, 4)
         .padding(.top, 12)
+    }
+
+    private var settingsButton: some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            showSettings = true
+        }) {
+            Image(systemName: "gearshape")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Theme.text2)
+                .frame(width: 26, height: 26)
+                .background(Theme.bgElev)
+                .overlay(
+                    Circle()
+                        .stroke(Theme.hairlineBright, lineWidth: 1)
+                )
+                .clipShape(Circle())
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 
     // MARK: - Coach chip (top-right)
@@ -128,6 +144,7 @@ struct IdleHome: View {
         .clipShape(RoundedRectangle(cornerRadius: 999))
         .onTapGesture {
             UISelectionFeedbackGenerator().selectionChanged()
+            showCoach = true
         }
     }
 
@@ -280,7 +297,9 @@ struct IdleHome: View {
                     .foregroundColor(Theme.accent)
                     .kerning(2.13)
             }
-            TimelineDots(intensities: MockData.timeline)
+            TimelineDots(intensities: store.records.isEmpty
+                         ? MockData.timeline
+                         : store.recentDayIntensities(days: 14))
         }
         .padding(.top, 16)
     }
@@ -323,6 +342,22 @@ struct IdleHome: View {
 // - 顶部连跑 chip 用 gold 色，断了以后切金/灰由调用方判断
 //
 private struct WeeklyRhythmCard: View {
+    @EnvironmentObject var store: RunSessionStore
+
+    private var dayKm: [Double] {
+        store.records.isEmpty ? MockData.WeekRhythm.dayKm : store.dailyDistancesThisWeek()
+    }
+
+    private var totalKm: String {
+        store.records.isEmpty
+            ? MockData.WeekRhythm.totalKm
+            : String(format: "%.1f", store.thisWeekDistanceKm)
+    }
+
+    private var streakDays: Int {
+        store.records.isEmpty ? MockData.WeekRhythm.streakDays : store.currentStreakDays()
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             wrcHeader
@@ -358,7 +393,7 @@ private struct WeeklyRhythmCard: View {
         HStack(alignment: .bottom, spacing: 0) {
             ForEach(0..<7) { i in
                 BarColumn(
-                    km: MockData.WeekRhythm.dayKm[i],
+                    km: dayKm[i],
                     label: MockData.WeekRhythm.dayLabels[i],
                     isToday: i == MockData.WeekRhythm.todayIndex
                 )
@@ -374,7 +409,7 @@ private struct WeeklyRhythmCard: View {
                 .font(PaceFont.cn(size: 9))
                 .foregroundColor(Theme.text3)
                 .kerning(1.0)
-            Text(MockData.WeekRhythm.totalKm)
+            Text(totalKm)
                 .font(PaceFont.mono(size: 17, weight: .semibold))
                 .foregroundColor(Theme.text1)
             Text("km")
@@ -393,7 +428,7 @@ private struct WeeklyRhythmCard: View {
             Text("↗")
                 .font(.system(size: 9))
                 .foregroundColor(Theme.accent)
-            Text("\(MockData.WeekRhythm.streakDays)")
+            Text("\(streakDays)")
                 .font(PaceFont.mono(size: 10, weight: .semibold))
                 .foregroundColor(Theme.text1)  // 白色 — 与 HTML 对齐
             Text("天")
@@ -509,6 +544,8 @@ struct IdleHome_Previews: PreviewProvider {
     static var previews: some View {
         IdleHome()
             .preferredColorScheme(.dark)
+            .environmentObject(RunSessionEngine())
+            .environmentObject(RunSessionStore.shared)
     }
 }
 #endif

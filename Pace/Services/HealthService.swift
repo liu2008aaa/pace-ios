@@ -83,7 +83,7 @@ final class HealthService: NSObject, ObservableObject {
         config.activityType = activityType
         config.locationType = .outdoor
 
-        do {
+        if isAvailable && isAuthorized {
             let builder = HKWorkoutBuilder(healthStore: store, configuration: config, device: nil)
             try? builder.beginCollection(withStart: start) { _, _ in /* ignore */ }
             workoutBuilder = builder
@@ -134,6 +134,10 @@ final class HealthService: NSObject, ObservableObject {
     }
 
     func reset() {
+        stopHeartRateObserver()
+        #if targetEnvironment(simulator)
+        stopMockHeartRate()
+        #endif
         currentHR = nil
         hrSamples = []
         workoutStart = nil

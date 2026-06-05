@@ -31,6 +31,7 @@ struct PreRunView: View {
 
     /// .preflight = GPS 搜星中; .ready/.countdown = 倒计时
     private var isSearching: Bool { engine.phase == .preflight }
+    private var isLocationDenied: Bool { isSearching && engine.locationDenied }
     private var isCountdown: Bool {
         engine.phase == .countdown || engine.phase == .ready
     }
@@ -102,7 +103,9 @@ struct PreRunView: View {
     private var heroSection: some View {
         if isSearching {
             VStack(spacing: 14) {
-                Text("SEARCHING GPS · \(searchSeconds + 1) 秒")
+                Text(isLocationDenied
+                     ? "LOCATION PERMISSION"
+                     : "SEARCHING GPS · \(searchSeconds + 1) 秒")
                     .font(PaceFont.mono(size: 9, weight: .semibold))
                     .foregroundColor(Theme.gold)
                     .kerning(3.6)
@@ -112,14 +115,14 @@ struct PreRunView: View {
 
                 // "已找到 4 颗，需 ≥ 6 颗" — 4 用金色加重
                 HStack(spacing: 4) {
-                    Text("已找到")
+                    Text(isLocationDenied ? "定位权限" : "已找到")
                         .font(PaceFont.cn(size: 12, weight: .medium))
                         .foregroundColor(Theme.text2)
                         .kerning(1.2)
-                    Text("\(satellites)")
+                    Text(isLocationDenied ? "未开启" : "\(satellites)")
                         .font(PaceFont.mono(size: 13, weight: .bold))
                         .foregroundColor(Theme.gold)
-                    Text("颗，需 ≥ 6 颗")
+                    Text(isLocationDenied ? "，无法锁定 GPS" : "颗，需 ≥ 6 颗")
                         .font(PaceFont.cn(size: 12, weight: .medium))
                         .foregroundColor(Theme.text2)
                         .kerning(1.2)
@@ -157,7 +160,9 @@ struct PreRunView: View {
             ChecklistRow(
                 state: isSearching ? .searching : .ok,
                 label: "GPS",
-                detail: isSearching
+                detail: isLocationDenied
+                    ? "定位权限未开启"
+                    : isSearching
                     ? "搜索中 · \(satellites) / 6 颗"
                     : "已锁定 \(max(4, satellites)) 颗卫星"
             )
@@ -190,12 +195,12 @@ struct PreRunView: View {
         if isSearching {
             VStack(spacing: 8) {
                 HStack(spacing: 10) {
-                    // 移到空旷处 — 次级 (取消, 回 IdleHome)
+                    // 移到空旷处 / 返回 — 次级 (取消, 回 IdleHome)
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         engine.cancelPreflight()
                     }) {
-                        Text("移到空旷处")
+                        Text(isLocationDenied ? "返回首页" : "移到空旷处")
                             .font(PaceFont.cn(size: 12, weight: .medium))
                             .foregroundColor(Theme.text2)
                             .kerning(1.6)
@@ -231,7 +236,7 @@ struct PreRunView: View {
                     .buttonStyle(PlainButtonStyle())
                 }
 
-                Text("树荫 / 室内 / 高楼附近 GPS 较弱")
+                Text(isLocationDenied ? "请在系统设置中允许定位，或继续低精度记录" : "树荫 / 室内 / 高楼附近 GPS 较弱")
                     .font(PaceFont.cn(size: 9, weight: .regular))
                     .foregroundColor(Theme.text4)
                     .kerning(2.0)

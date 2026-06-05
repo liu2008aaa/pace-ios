@@ -18,8 +18,37 @@ import SwiftUI
 
 struct ShareView: View {
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var engine: RunSessionEngine
 
     @State private var selectedStyle: MockData.Share.Style = .classic
+
+    private var displayDate: String {
+        guard let record = engine.lastRecord else { return MockData.PostRun.date }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "M月d日"
+        return f.string(from: record.startDate)
+    }
+
+    private var displayDateCompact: String {
+        guard let record = engine.lastRecord else { return "05·07" }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "MM·dd"
+        return f.string(from: record.startDate)
+    }
+
+    private var displayDistanceKm: Double {
+        engine.lastRecord?.distanceKm ?? MockData.PostRun.distanceKm
+    }
+
+    private var displayDuration: String {
+        engine.lastRecord?.durationDisplay ?? MockData.PostRun.durationStr
+    }
+
+    private var displayPace: String {
+        engine.lastRecord?.paceDisplay ?? MockData.PostRun.avgPace
+    }
 
     var body: some View {
         ZStack {
@@ -92,7 +121,7 @@ struct ShareView: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 3) {
-                Text("\(MockData.PostRun.date) · \(String(format: "%.2f", MockData.PostRun.distanceKm)) km")
+                Text("\(displayDate) · \(String(format: "%.2f", displayDistanceKm)) km")
                     .font(PaceFont.cn(size: 11, weight: .medium))
                     .foregroundColor(Theme.text2)
                     .kerning(0.6)
@@ -108,15 +137,21 @@ struct ShareView: View {
     private var miniGallery: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                MiniClassic(active: selectedStyle == .classic)
+                MiniClassic(active: selectedStyle == .classic,
+                            date: displayDateCompact,
+                            distanceKm: displayDistanceKm)
                     .onTapGesture { tap(.classic) }
-                MiniMinimal(active: selectedStyle == .minimal)
+                MiniMinimal(active: selectedStyle == .minimal,
+                            date: displayDate,
+                            distanceKm: displayDistanceKm,
+                            duration: displayDuration)
                     .onTapGesture { tap(.minimal) }
             }
             HStack(spacing: 8) {
                 MiniPoster(active: selectedStyle == .poster)
                     .onTapGesture { tap(.poster) }
-                MiniData(active: selectedStyle == .data)
+                MiniData(active: selectedStyle == .data,
+                         distanceKm: displayDistanceKm)
                     .onTapGesture { tap(.data) }
             }
         }
@@ -273,6 +308,8 @@ private struct MiniFrame<Content: View>: View {
 // MARK: - Mini 1: 经典 (左上 PACE. + 大数字 + 曲线 + 4 列数据 + 金句)
 private struct MiniClassic: View {
     let active: Bool
+    let date: String
+    let distanceKm: Double
 
     var body: some View {
         MiniFrame(style: .classic, active: active) {
@@ -309,13 +346,13 @@ private struct MiniClassic: View {
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(Theme.accent)
                         Spacer()
-                        Text("05·07")
+                        Text(date)
                             .font(PaceFont.mono(size: 8, weight: .medium))
                             .foregroundColor(Theme.text3)
                             .kerning(1.2)
                     }
 
-                    Text(String(format: "%.2f", MockData.PostRun.distanceKm))
+                    Text(String(format: "%.2f", distanceKm))
                         .font(.system(size: 38, weight: .bold, design: .monospaced))
                         .foregroundColor(.white)
                         .kerning(-1.2)
@@ -414,6 +451,9 @@ private struct MiniClassicCurveShape: Shape {
 // MARK: - Mini 2: 极简 (左上 P. + 居中大数字 + 左下日期 + 右下 ✦)
 private struct MiniMinimal: View {
     let active: Bool
+    let date: String
+    let distanceKm: Double
+    let duration: String
 
     var body: some View {
         MiniFrame(style: .minimal, active: active) {
@@ -441,7 +481,7 @@ private struct MiniMinimal: View {
 
                 // 居中大数字 (mini 卡 232 高, 数字也得撑场子)
                 VStack(spacing: 8) {
-                    Text(String(format: "%.2f", MockData.PostRun.distanceKm))
+                    Text(String(format: "%.2f", distanceKm))
                         .font(.system(size: 48, weight: .medium, design: .monospaced))
                         .foregroundColor(.white)
                         .kerning(-1.8)
@@ -455,7 +495,7 @@ private struct MiniMinimal: View {
                 VStack {
                     Spacer()
                     HStack {
-                        Text("\(MockData.PostRun.date) · \(MockData.PostRun.durationStr)")
+                        Text("\(date) · \(duration)")
                             .font(PaceFont.mono(size: 8, weight: .medium))
                             .foregroundColor(Theme.text3)
                             .kerning(1.4)
@@ -701,6 +741,7 @@ private struct MiniCometShape: Shape {
 // MARK: - Mini 4: 数据 (顶部 brand+meta + 折线 + 5 行 splits + 底部 HR)
 private struct MiniData: View {
     let active: Bool
+    let distanceKm: Double
 
     var body: some View {
         MiniFrame(style: .data, active: active) {
@@ -722,7 +763,7 @@ private struct MiniData: View {
                          + Text(".").font(.system(size: 10, weight: .bold))
                             .foregroundColor(Theme.accent))
                         Spacer()
-                        Text("\(String(format: "%.2f", MockData.PostRun.distanceKm)) KM")
+                        Text("\(String(format: "%.2f", distanceKm)) KM")
                             .font(PaceFont.mono(size: 8, weight: .semibold))
                             .foregroundColor(Theme.accent)
                             .kerning(0.6)
@@ -839,6 +880,7 @@ struct ShareView_Previews: PreviewProvider {
     static var previews: some View {
         ShareView()
             .preferredColorScheme(.dark)
+            .environmentObject(RunSessionEngine())
     }
 }
 #endif

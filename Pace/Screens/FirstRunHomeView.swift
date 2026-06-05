@@ -14,6 +14,8 @@ import SwiftUI
 
 struct FirstRunHomeView: View {
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var engine: RunSessionEngine
+    @EnvironmentObject var store: RunSessionStore
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -31,7 +33,7 @@ struct FirstRunHomeView: View {
                 Spacer()
                 StartButton {
                     UINotificationFeedbackGenerator().notificationOccurred(.success)
-                    // v0.5+: 首跑接 PreRunView
+                    engine.startPreflight()
                 }
                 firstRunHint
                 emptyTimeline
@@ -213,6 +215,8 @@ struct FirstRunHomeView_Previews: PreviewProvider {
     static var previews: some View {
         FirstRunHomeView()
             .preferredColorScheme(.dark)
+            .environmentObject(RunSessionEngine())
+            .environmentObject(RunSessionStore.shared)
     }
 }
 #endif

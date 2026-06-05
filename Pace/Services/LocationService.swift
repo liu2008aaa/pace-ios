@@ -51,6 +51,7 @@ final class LocationService: NSObject, ObservableObject {
     private let manager = CLLocationManager()
     private var lastValidLocation: CLLocation?
     private var route: [CLLocation] = []
+    private var wantsProbing: Bool = false
     /// 近期 fix 缓冲, 计算 rolling pace 用
     private var recentFixes: [(loc: CLLocation, accumulated: Double)] = []
 
@@ -83,6 +84,7 @@ final class LocationService: NSObject, ObservableObject {
     /// 开始接收 fix. 此时 fixCount 从 0 累计, distanceMeters 不变 (等 startAccumulating)
     /// 二段式: 先获取 fix (PreRun phase), 跑起来后才 startAccumulating.
     func startProbing() {
+        wantsProbing = true
         guard isAuthorized else { return }
         fixCount = 0
         horizontalAccuracy = -1
@@ -116,6 +118,7 @@ final class LocationService: NSObject, ObservableObject {
 
     /// 完整结束, 返回完整路径. 调用方负责清零状态.
     func stopAndCollect() -> [CLLocation] {
+        wantsProbing = false
         manager.stopUpdatingLocation()
         isTracking = false
         let collected = route
@@ -125,6 +128,8 @@ final class LocationService: NSObject, ObservableObject {
 
     /// 完全 reset (PostRun → IdleHome 后)
     func reset() {
+        wantsProbing = false
+        manager.stopUpdatingLocation()
         fixCount = 0
         horizontalAccuracy = -1
         currentLocation = nil
@@ -142,7 +147,11 @@ extension LocationService: CLLocationManagerDelegate {
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         DispatchQueue.main.async { [weak self] in
-            self?.authorization = manager.authorizationStatus
+            guard let self = self else { return }
+            self.authorization = manager.authorizationStatus
+            if self.wantsProbing, self.isAuthorized, !self.isTracking {
+                self.startProbing()
+            }
         }
     }
 

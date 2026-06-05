@@ -66,6 +66,7 @@ final class RunSessionEngine: ObservableObject {
 
     /// CL 授权状态 (转发, 用于检测拒绝)
     @Published private(set) var locationAuthorized: Bool = false
+    @Published private(set) var locationDenied: Bool = false
 
     /// .end 时生成, .acknowledge 后清空. PostRunView 显示这条.
     @Published private(set) var lastRecord: RunRecord? = nil
@@ -121,6 +122,12 @@ final class RunSessionEngine: ObservableObject {
             .map { $0 == .authorizedWhenInUse || $0 == .authorizedAlways }
             .receive(on: DispatchQueue.main)
             .assign(to: \.locationAuthorized, on: self)
+            .store(in: &locationCancellables)
+
+        location.$authorization
+            .map { $0 == .denied || $0 == .restricted }
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.locationDenied, on: self)
             .store(in: &locationCancellables)
 
         health.$currentHR

@@ -9,9 +9,46 @@
 //
 
 import SwiftUI
+import CoreLocation
 
 struct RouteDetailView: View {
     @Environment(\.presentationMode) private var presentationMode
+    @EnvironmentObject var engine: RunSessionEngine
+
+    private var record: RunRecord? { engine.lastRecord }
+
+    private var titleMeta: String {
+        guard let record = record else { return MockData.RouteDetail.dateStr }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "M·dd"
+        return "\(f.string(from: record.startDate)) · \(String(format: "%.2f", record.distanceKm)) KM"
+    }
+
+    private var distanceText: String {
+        String(format: "%.2f", record?.distanceKm ?? MockData.RouteDetail.distanceKm)
+    }
+
+    private var durationText: String {
+        record?.durationDisplay ?? MockData.RouteDetail.durationStr
+    }
+
+    private var paceText: String {
+        record?.paceDisplay ?? MockData.RouteDetail.avgPace
+    }
+
+    private var routePoints: [RoutePoint] {
+        record?.routePoints ?? []
+    }
+
+    private var splitRows: [(label: String, pace: String, tier: Int)] {
+        guard let record = record,
+              let generated = generatedSplits(for: record),
+              !generated.isEmpty else {
+            return MockData.RouteDetail.splits
+        }
+        return generated
+    }
 
     var body: some View {
         ZStack {
@@ -58,7 +95,7 @@ struct RouteDetailView: View {
                 .foregroundColor(Theme.text1)
                 .kerning(2.4)
             Spacer()
-            Text(MockData.RouteDetail.dateStr)
+            Text(titleMeta)
                 .font(PaceFont.mono(size: 10, weight: .medium))
                 .foregroundColor(Theme.text3)
                 .kerning(2.4)
@@ -76,14 +113,19 @@ struct RouteDetailView: View {
             BigMapGridShape()
                 .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
 
-            // 路线 5 段渐变色
-            BigRouteShapes()
+            if routePoints.count >= 2 {
+                RoutePolylineView(points: routePoints)
+                    .padding(14)
+            } else {
+                // 路线 5 段渐变色
+                BigRouteShapes()
 
-            // 起终点 + KM markers
-            BigRouteMarkers()
+                // 起终点 + KM markers
+                BigRouteMarkers()
 
-            // 彗星粒子
-            BigRouteComet()
+                // 彗星粒子
+                BigRouteComet()
+            }
 
             // 浮动控件 (scale + compass)
             mapOverlays
@@ -152,11 +194,11 @@ struct RouteDetailView: View {
     // MARK: - 3 列统计 strip
     private var statStrip: some View {
         HStack(spacing: 0) {
-            statCell(value: String(format: "%.2f", MockData.RouteDetail.distanceKm), unit: "km", label: "距离")
+            statCell(value: distanceText, unit: "km", label: "距离")
             Rectangle().fill(Theme.hairlineBright).frame(width: 0.5, height: 32)
-            statCell(value: MockData.RouteDetail.durationStr, unit: "", label: "时长")
+            statCell(value: durationText, unit: "", label: "时长")
             Rectangle().fill(Theme.hairlineBright).frame(width: 0.5, height: 32)
-            statCell(value: MockData.RouteDetail.avgPace, unit: "/km", label: "配速")
+            statCell(value: paceText, unit: "/km", label: "配速")
         }
         .padding(.vertical, 10)
         .background(Theme.bgCard)
@@ -227,14 +269,74 @@ struct RouteDetailView: View {
                 .foregroundColor(Theme.text3)
                 .kerning(2.6)
 
-            HStack(spacing: 5) {
-                ForEach(0..<MockData.RouteDetail.splits.count, id: \.self) { i in
-                    let s = MockData.RouteDetail.splits[i]
-                    SplitChip(label: s.label, pace: s.pace, tier: s.tier)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 5) {
+                    ForEach(0..<splitRows.count, id: \.self) { i in
+                        let s = splitRows[i]
+                        SplitChip(label: s.label, pace: s.pace, tier: s.tier)
+                    }
                 }
             }
         }
         .padding(.horizontal, 16)
+    }
+
+    private func generatedSplits(for record: RunRecord) -> [(label: String, pace: String, tier: Int)]? {
+        let points = record.routePoints
+        guard points.count >= 2 else { return nil }
+
+        var splits: [(label: String, seconds: Int)] = []
+        var accumulatedMeters: Double = 0
+        var nextKm: Double = 1000
+        var segmentStartTime = points[0].timestamp
+
+        for i in 1..<points.count {
+            let previous = points[i - 1]
+            let current = points[i]
+            let previousLocation = CLLocation(latitude: previous.lat, longitude: previous.lng)
+            let currentLocation = CLLocation(latitude: current.lat, longitude: current.lng)
+            let distance = currentLocation.distance(from: previousLocation)
+            guard distance > 0 else { continue }
+
+            let before = accumulatedMeters
+            let after = accumulatedMeters + distance
+
+            while after >= nextKm {
+                let ratio = max(0, min(1, (nextKm - before) / distance))
+                let splitTime = previous.timestamp + (current.timestamp - previous.timestamp) * ratio
+                let seconds = max(1, Int(round(splitTime - segmentStartTime)))
+                splits.append((label: "KM \(splits.count + 1)", seconds: seconds))
+                segmentStartTime = splitTime
+                nextKm += 1000
+            }
+
+            accumulatedMeters = after
+        }
+
+        let partialMeters = accumulatedMeters - (nextKm - 1000)
+        if partialMeters >= 100,
+           let last = points.last {
+            let partialSeconds = max(1, last.timestamp - segmentStartTime)
+            let seconds = max(1, Int(round((partialSeconds / partialMeters) * 1000)))
+            splits.append((label: "KM \(splits.count + 1)", seconds: seconds))
+        }
+
+        guard !splits.isEmpty else { return nil }
+        let minSeconds = splits.map { $0.seconds }.min() ?? 1
+        let maxSeconds = splits.map { $0.seconds }.max() ?? minSeconds
+        let span = max(1, maxSeconds - minSeconds)
+
+        return splits.map { split in
+            let speedRank = 1.0 - (Double(split.seconds - minSeconds) / Double(span))
+            let tier = max(0, min(4, Int(round(speedRank * 4))))
+            return (label: split.label, pace: paceDisplay(seconds: split.seconds), tier: tier)
+        }
+    }
+
+    private func paceDisplay(seconds: Int) -> String {
+        let m = seconds / 60
+        let s = seconds % 60
+        return "\(m)'\(String(format: "%02d", s))\""
     }
 }
 
@@ -568,6 +670,7 @@ struct RouteDetailView_Previews: PreviewProvider {
     static var previews: some View {
         RouteDetailView()
             .preferredColorScheme(.dark)
+            .environmentObject(RunSessionEngine())
     }
 }
 #endif
