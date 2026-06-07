@@ -44,8 +44,12 @@ private struct SwipeToDismissModifier: ViewModifier {
             .simultaneousGesture(
                 DragGesture(minimumDistance: 24, coordinateSpace: .local)
                     .onEnded { value in
-                        guard value.translation.height > 90,
-                              abs(value.translation.width) < 80 else { return }
+                        let isDownSwipe = value.translation.height > 90
+                            && abs(value.translation.width) < 80
+                        let isRightEdgeSwipe = value.startLocation.x < 44
+                            && value.translation.width > 90
+                            && abs(value.translation.height) < 100
+                        guard isDownSwipe || isRightEdgeSwipe else { return }
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         presentationMode.wrappedValue.dismiss()
                     }

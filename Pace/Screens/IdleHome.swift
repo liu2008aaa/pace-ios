@@ -88,6 +88,7 @@ struct IdleHome: View {
         .fullScreenCover(isPresented: $showCoach) {
             CoachChatView()
         }
+        .onAppear { LaunchTiming.mark("IdleHome appear") }
     }
 
     // MARK: - Brand strip (PACE. + Coach chip)

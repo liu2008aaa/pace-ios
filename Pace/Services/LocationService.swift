@@ -6,7 +6,7 @@
 //
 //  关键决策:
 //  - 全程 .requestWhenInUseAuthorization (背景跑步需要 Background Modes 后再升级)
-//  - 距离累计采用"两点间 GPS 投影" — 抛弃 horizontalAccuracy > 30m 或位移 < 0.5m
+//  - 距离累计采用"两点间 GPS 投影" — 抛弃 horizontalAccuracy > 50m 或位移 < 0.5m
 //    的脏数据, 减少静止漂移误累计
 //  - fixCount 用作"卫星数"的近似 — 不能直接拿到真实卫星数, 但前几个高精度
 //    fix 拿到后才认为 GPS ready (≥ 4 表示 ready 出发)
@@ -44,6 +44,12 @@ final class LocationService: NSObject, ObservableObject {
     /// 当前 (滚动) 配速 (秒/公里). 用最近 8 个 fix 估算; 0 表示尚未有效.
     @Published private(set) var rollingPaceSecondsPerKm: Int = 0
 
+    /// 当前速度 (米/秒). 来自 CLLocation.speed, 不可靠时用两点距离/时间估算.
+    @Published private(set) var currentSpeedMetersPerSecond: Double = 0
+
+    /// 正式记录的路线点数量. 用于跑步中确认 GPS 轨迹是否持续落点.
+    @Published private(set) var routePointCount: Int = 0
+
     // MARK: - 内部
 
     static let shared = LocationService()
@@ -52,8 +58,11 @@ final class LocationService: NSObject, ObservableObject {
     private var lastValidLocation: CLLocation?
     private var route: [CLLocation] = []
     private var wantsProbing: Bool = false
+    private var isAccumulating: Bool = false
     /// 近期 fix 缓冲, 计算 rolling pace 用
     private var recentFixes: [(loc: CLLocation, accumulated: Double)] = []
+    private let displayAccuracyLimit: Double = 100
+    private let distanceAccuracyLimit: Double = 50
 
     // MARK: - 初始化
 
@@ -62,7 +71,7 @@ final class LocationService: NSObject, ObservableObject {
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.activityType = .fitness
-        manager.distanceFilter = 5
+        manager.distanceFilter = 1
         manager.pausesLocationUpdatesAutomatically = false
         authorization = manager.authorizationStatus
     }
@@ -96,12 +105,20 @@ final class LocationService: NSObject, ObservableObject {
     /// 跑起来 — 重置距离累加器, 开始累计 distance.
     func startAccumulating() {
         distanceMeters = 0
-        lastValidLocation = currentLocation
+        rollingPaceSecondsPerKm = 0
+        currentSpeedMetersPerSecond = max(0, currentLocation?.speed ?? 0)
+        if let loc = currentLocation, loc.horizontalAccuracy <= distanceAccuracyLimit {
+            lastValidLocation = loc
+        } else {
+            lastValidLocation = nil
+        }
         route.removeAll()
         recentFixes.removeAll()
-        if let loc = currentLocation {
+        isAccumulating = true
+        if let loc = lastValidLocation {
             route.append(loc)
         }
+        routePointCount = route.count
     }
 
     /// 暂停时停 fix (Pause). 重新 resume 时再 startUpdating.
@@ -109,10 +126,13 @@ final class LocationService: NSObject, ObservableObject {
         manager.stopUpdatingLocation()
         // lastValidLocation 保留, 重新 resume 时 NOT 累加 pause 间距 (会有跳变)
         lastValidLocation = nil
+        currentSpeedMetersPerSecond = 0
+        isAccumulating = false
     }
 
     func resumeTracking() {
         guard isAuthorized else { return }
+        isAccumulating = true
         manager.startUpdatingLocation()
     }
 
@@ -121,8 +141,11 @@ final class LocationService: NSObject, ObservableObject {
         wantsProbing = false
         manager.stopUpdatingLocation()
         isTracking = false
+        isAccumulating = false
+        currentSpeedMetersPerSecond = 0
         let collected = route
         route.removeAll()
+        routePointCount = 0
         return collected
     }
 
@@ -135,10 +158,13 @@ final class LocationService: NSObject, ObservableObject {
         currentLocation = nil
         distanceMeters = 0
         rollingPaceSecondsPerKm = 0
+        currentSpeedMetersPerSecond = 0
         lastValidLocation = nil
         route.removeAll()
+        routePointCount = 0
         recentFixes.removeAll()
         isTracking = false
+        isAccumulating = false
     }
 }
 
@@ -161,8 +187,8 @@ extension LocationService: CLLocationManagerDelegate {
         guard let loc = locations.last else { return }
         let age = Date().timeIntervalSince(loc.timestamp)
         guard age < 5 else { return }
-        // 抛弃 horizontalAccuracy <= 0 (无效) 或 > 30m (太差)
-        guard loc.horizontalAccuracy > 0, loc.horizontalAccuracy <= 30 else { return }
+        // 展示层可以接受稍弱定位; 距离累计在 ingestFix 里再做更严格过滤.
+        guard loc.horizontalAccuracy > 0, loc.horizontalAccuracy <= displayAccuracyLimit else { return }
 
         DispatchQueue.main.async { [weak self] in
             self?.ingestFix(loc)
@@ -181,15 +207,35 @@ extension LocationService: CLLocationManagerDelegate {
         horizontalAccuracy = loc.horizontalAccuracy
         fixCount = min(6, fixCount + 1)
 
-        // 距离累加 (仅 startAccumulating 之后, 即 lastValidLocation 非 nil)
+        guard isAccumulating else { return }
+
+        guard loc.horizontalAccuracy <= distanceAccuracyLimit else {
+            if loc.speed >= 0 {
+                currentSpeedMetersPerSecond = loc.speed
+            }
+            return
+        }
+
+        // 距离累加 (仅 startAccumulating 之后)
         if let last = lastValidLocation {
             let seg = loc.distance(from: last)
+            let dt = loc.timestamp.timeIntervalSince(last.timestamp)
+            if loc.speed >= 0 {
+                currentSpeedMetersPerSecond = loc.speed
+            } else if dt > 0, seg < 80 {
+                currentSpeedMetersPerSecond = seg / dt
+            }
+
             // 跳变保护: 单次位移 > 80m 在跑步场景不合理 (1Hz 下 = 288 km/h)
             if seg > 0.5 && seg < 80 {
                 distanceMeters += seg
                 route.append(loc)
+                routePointCount = route.count
                 updateRollingPace(loc: loc, accumulated: distanceMeters)
             }
+        } else {
+            route.append(loc)
+            routePointCount = route.count
         }
         lastValidLocation = loc
     }

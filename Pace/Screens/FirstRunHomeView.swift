@@ -43,6 +43,7 @@ struct FirstRunHomeView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
         }
+        .onAppear { LaunchTiming.mark("FirstRunHome appear") }
     }
 
     // MARK: - 顶部条 (PACE. + 教练 locked chip)

@@ -31,6 +31,7 @@ struct RunningView: View {
                 heroSection
                 splitDivider
                 distanceTimeRow
+                telemetryPanel
                 Spacer()
                 hrZoneSection
                 hrCard
@@ -109,9 +110,9 @@ struct RunningView: View {
                 .padding(.bottom, 6)
 
             Text(engine.paceDisplay)
-                .font(.system(size: 110, weight: .bold, design: .monospaced))
+                .font(.system(size: 96, weight: .bold, design: .monospaced))
                 .foregroundColor(Theme.accent)
-                .kerning(-4.4)
+                .kerning(-3.8)
                 .shadow(color: Theme.accent.opacity(glowPhase ? 0.72 : 0.55),
                         radius: glowPhase ? 18 : 14)
                 .shadow(color: Theme.accent.opacity(glowPhase ? 0.42 : 0.30),
@@ -179,6 +180,69 @@ struct RunningView: View {
                     .kerning(2.4)
             }
         }
+    }
+
+    // MARK: - 实时 GPS / 速度诊断
+    private var telemetryPanel: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                telemetryItem(value: engine.speedDisplay, unit: "km/h", label: "速度")
+                telemetryItem(value: engine.accuracyDisplay, unit: "", label: "精度")
+                telemetryItem(value: "\(engine.routePointCount)", unit: "点", label: "轨迹")
+            }
+
+            HStack(spacing: 8) {
+                Text("位置")
+                    .font(PaceFont.cn(size: 10, weight: .medium))
+                    .foregroundColor(Theme.text3)
+                    .kerning(2.0)
+                Text(engine.coordinateDisplay)
+                    .font(PaceFont.mono(size: 11, weight: .medium))
+                    .foregroundColor(Theme.text2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(Theme.bgCard.opacity(0.72))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Theme.hairlineBright, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .padding(.top, 16)
+        .padding(.horizontal, 4)
+    }
+
+    private func telemetryItem(value: String, unit: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            HStack(alignment: .lastTextBaseline, spacing: 3) {
+                Text(value)
+                    .font(PaceFont.mono(size: 16, weight: .bold))
+                    .foregroundColor(Theme.text1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.74)
+                if !unit.isEmpty {
+                    Text(unit)
+                        .font(PaceFont.cn(size: 9, weight: .medium))
+                        .foregroundColor(Theme.text3)
+                }
+            }
+            Text(label)
+                .font(PaceFont.cn(size: 9, weight: .medium))
+                .foregroundColor(Theme.text3)
+                .kerning(1.8)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 54)
+        .background(Theme.bgCard.opacity(0.72))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Theme.hairlineBright, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     // MARK: - 心率区间 (zone bar)

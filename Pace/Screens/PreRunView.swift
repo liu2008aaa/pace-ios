@@ -32,6 +32,9 @@ struct PreRunView: View {
     /// .preflight = GPS 搜星中; .ready/.countdown = 倒计时
     private var isSearching: Bool { engine.phase == .preflight }
     private var isLocationDenied: Bool { isSearching && engine.locationDenied }
+    private var shouldShowGpsIssue: Bool {
+        isSearching && (engine.waitingForGps || engine.locationDenied)
+    }
     private var isCountdown: Bool {
         engine.phase == .countdown || engine.phase == .ready
     }
@@ -101,7 +104,7 @@ struct PreRunView: View {
     // MARK: - Hero (searching: 金 spinner + 卫星 / counting: 倒计时圆)
     @ViewBuilder
     private var heroSection: some View {
-        if isSearching {
+        if shouldShowGpsIssue {
             VStack(spacing: 14) {
                 Text(isLocationDenied
                      ? "LOCATION PERMISSION"
@@ -128,6 +131,21 @@ struct PreRunView: View {
                         .kerning(1.2)
                 }
             }
+        } else if isSearching {
+            VStack(spacing: 14) {
+                Text("PREPARING")
+                    .font(PaceFont.mono(size: 9, weight: .semibold))
+                    .foregroundColor(Theme.accent)
+                    .kerning(3.6)
+
+                CountdownCircle(value: 3)
+                    .frame(width: 132, height: 132)
+
+                Text("正在初始化 GPS 与心率")
+                    .font(PaceFont.cn(size: 13, weight: .medium))
+                    .foregroundColor(Theme.text2)
+                    .kerning(2.4)
+            }
         } else {
             // .ready / .countdown 共用倒计时 hero. .ready 短暂 0.2s 视为 countdown=3
             VStack(spacing: 14) {
@@ -136,8 +154,16 @@ struct PreRunView: View {
                     .foregroundColor(Theme.text3)
                     .kerning(3.6)
 
-                CountdownCircle(value: max(1, counter), total: 3)
-                    .frame(width: 132, height: 132)
+                Group {
+                    if engine.phase == .countdown {
+                        CountdownCircle(value: max(1, counter))
+                            .id("countdown-progress")
+                    } else {
+                        CountdownCircle(value: 3)
+                            .id("countdown-ready")
+                    }
+                }
+                .frame(width: 132, height: 132)
 
                 Text("深呼吸，跑姿调整")
                     .font(PaceFont.cn(size: 13, weight: .medium))
@@ -158,33 +184,34 @@ struct PreRunView: View {
 
             // GPS: searching 时 spinner + 金, counting 时 ✓
             ChecklistRow(
-                state: isSearching ? .searching : .ok,
+                state: shouldShowGpsIssue ? .searching : .ok,
                 label: "GPS",
                 detail: isLocationDenied
                     ? "定位权限未开启"
-                    : isSearching
+                    : shouldShowGpsIssue
                     ? "搜索中 · \(satellites) / 6 颗"
-                    : "已锁定 \(max(4, satellites)) 颗卫星"
+                    : satellites > 0
+                    ? "已收到定位信号"
+                    : "后台初始化中"
             )
 
             ChecklistRow(
-                state: .ok,
+                state: engine.currentHR == nil ? .warn : .ok,
                 label: "心率",
                 detail: engine.currentHR.map { "\($0) BPM" }
-                    ?? "\(MockData.PreRun.restingHR) BPM 静息"
-            )
-
-            // 音乐: searching 时显示警告 (HTML demo Phone 14 的设定)
-            ChecklistRow(
-                state: isSearching ? .warn : .ok,
-                label: "音乐",
-                detail: isSearching ? "未检测到" : MockData.PreRun.musicSource
+                    ?? "等待 Apple Watch"
             )
 
             ChecklistRow(
                 state: .ok,
-                label: "语音",
-                detail: MockData.PreRun.voiceSetting
+                label: "记录",
+                detail: "路线 · 配速 · 时间"
+            )
+
+            ChecklistRow(
+                state: .ok,
+                label: "开始",
+                detail: isSearching ? "即将倒计时" : "倒计时中"
             )
         }
     }
@@ -192,7 +219,7 @@ struct PreRunView: View {
     // MARK: - 底部 (searching: 双按钮 + 弱 GPS 提示 / counting: 长按取消提示)
     @ViewBuilder
     private var bottomArea: some View {
-        if isSearching {
+        if shouldShowGpsIssue {
             VStack(spacing: 8) {
                 HStack(spacing: 10) {
                     // 移到空旷处 / 返回 — 次级 (取消, 回 IdleHome)
@@ -274,7 +301,7 @@ struct PreRunView: View {
 //
 private struct CountdownCircle: View {
     let value: Int
-    let total: Int
+
     @State private var heartbeat = false
 
     var body: some View {
@@ -290,17 +317,10 @@ private struct CountdownCircle: View {
                 .stroke(Color.white.opacity(0.06), lineWidth: 2)
 
             Circle()
-                .trim(from: 0, to: progressRatio)
                 .stroke(
-                    LinearGradient(
-                        gradient: Gradient(colors: [Theme.accent, Theme.accentBright]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                    progressGradient,
+                    style: StrokeStyle(lineWidth: 3, lineCap: .butt)
                 )
-                .rotationEffect(.degrees(-90))
-                .animation(.linear(duration: 1.0), value: value)
                 .shadow(color: Theme.accent.opacity(heartbeat ? 0.55 : 0.30), radius: heartbeat ? 14 : 8)
 
             Text("\(value)")
@@ -318,9 +338,12 @@ private struct CountdownCircle: View {
         }
     }
 
-    private var progressRatio: CGFloat {
-        guard total > 0 else { return 0 }
-        return CGFloat(value) / CGFloat(total)
+    private var progressGradient: LinearGradient {
+        LinearGradient(
+            gradient: Gradient(colors: [Theme.accent, Theme.accentBright]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 }
 

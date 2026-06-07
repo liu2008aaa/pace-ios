@@ -15,6 +15,10 @@ import SwiftUI
 struct PaceApp: App {
     @StateObject private var engine = RunSessionEngine()
 
+    init() {
+        LaunchTiming.mark("PaceApp init")
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()

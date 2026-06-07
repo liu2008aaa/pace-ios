@@ -64,18 +64,32 @@ final class RunSessionEngine: ObservableObject {
     /// 不用再 @ObservedObject 接 LocationService.
     @Published private(set) var gpsFixCount: Int = 0
 
+    /// 最近一次有效定位的精度 (米). -1 表示暂无.
+    @Published private(set) var locationAccuracyMeters: Double = -1
+
+    /// 当前速度 (公里/小时).
+    @Published private(set) var currentSpeedKmh: Double = 0
+
+    /// 当前经纬度. nil 表示尚未拿到有效定位.
+    @Published private(set) var currentCoordinate: CLLocationCoordinate2D? = nil
+
+    /// 正式记录的路线点数量.
+    @Published private(set) var routePointCount: Int = 0
+
     /// CL 授权状态 (转发, 用于检测拒绝)
     @Published private(set) var locationAuthorized: Bool = false
     @Published private(set) var locationDenied: Bool = false
+    @Published private(set) var waitingForGps: Bool = false
 
     /// .end 时生成, .acknowledge 后清空. PostRunView 显示这条.
     @Published private(set) var lastRecord: RunRecord? = nil
 
     // MARK: - 依赖
 
-    let location: LocationService
-    let health: HealthService
     let store: RunSessionStore
+
+    private var location: LocationService?
+    private var health: HealthService?
 
     private var locationCancellables = Set<AnyCancellable>()
     private var healthCancellables = Set<AnyCancellable>()
@@ -92,16 +106,29 @@ final class RunSessionEngine: ObservableObject {
 
     // MARK: - 初始化
 
-    init(location: LocationService = .shared,
-         health: HealthService = .shared,
+    init(location: LocationService? = nil,
+         health: HealthService? = nil,
          store: RunSessionStore = .shared) {
+        self.store = store
         self.location = location
         self.health = health
-        self.store = store
-        bindToServices()
+        if let location = location, let health = health {
+            bindToServices(location: location, health: health)
+        }
     }
 
-    private func bindToServices() {
+    private func ensureServicesReady() {
+        guard location == nil || health == nil else { return }
+        let location = LocationService.shared
+        let health = HealthService.shared
+        self.location = location
+        self.health = health
+        bindToServices(location: location, health: health)
+    }
+
+    private func bindToServices(location: LocationService, health: HealthService) {
+        guard locationCancellables.isEmpty, healthCancellables.isEmpty else { return }
+
         location.$distanceMeters
             .map { $0 / 1000.0 }
             .receive(on: DispatchQueue.main)
@@ -116,6 +143,28 @@ final class RunSessionEngine: ObservableObject {
         location.$fixCount
             .receive(on: DispatchQueue.main)
             .assign(to: \.gpsFixCount, on: self)
+            .store(in: &locationCancellables)
+
+        location.$horizontalAccuracy
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.locationAccuracyMeters, on: self)
+            .store(in: &locationCancellables)
+
+        location.$currentSpeedMetersPerSecond
+            .map { max(0, $0) * 3.6 }
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.currentSpeedKmh, on: self)
+            .store(in: &locationCancellables)
+
+        location.$currentLocation
+            .map { $0?.coordinate }
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.currentCoordinate, on: self)
+            .store(in: &locationCancellables)
+
+        location.$routePointCount
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.routePointCount, on: self)
             .store(in: &locationCancellables)
 
         location.$authorization
@@ -141,8 +190,11 @@ final class RunSessionEngine: ObservableObject {
     /// IdleHome 点"出发" — 进入 preflight, 启动 1Hz 自动 tick (等 GPS / 超时)
     func startPreflight() {
         guard phase == .idle else { return }
+        ensureServicesReady()
+        guard let location = location, let health = health else { return }
         phase = .preflight
         preflightSeconds = 0
+        waitingForGps = false
         location.requestAuthorization()
         location.startProbing()
         health.requestAuthorization { _ in /* 拒绝也 OK, HR 不强求 */ }
@@ -168,8 +220,9 @@ final class RunSessionEngine: ObservableObject {
         preflightTimer = nil
         countdownTimer?.invalidate()
         countdownTimer = nil
-        location.reset()
-        health.reset()
+        waitingForGps = false
+        location?.reset()
+        health?.reset()
         phase = .idle
     }
 
@@ -188,14 +241,27 @@ final class RunSessionEngine: ObservableObject {
             return
         }
         preflightSeconds += 1
-        // GPS 锁定 (fixCount ≥ 4) 且授权了 → 自动切 ready, 0.2s 后启 countdown
-        if gpsFixCount >= 4 && locationAuthorized {
-            preflightTimer?.invalidate()
-            preflightTimer = nil
-            phase = .ready
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-                self?.startCountdown(seconds: 3)
-            }
+        if locationDenied {
+            waitingForGps = true
+            return
+        }
+        if gpsFixCount >= 1 && locationAuthorized {
+            transitionToCountdown()
+            return
+        }
+        if preflightSeconds >= 3 && locationAuthorized {
+            waitingForGps = true
+        }
+    }
+
+    private func transitionToCountdown() {
+        guard phase == .preflight else { return }
+        preflightTimer?.invalidate()
+        preflightTimer = nil
+        waitingForGps = false
+        phase = .ready
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            self?.startCountdown(seconds: 3)
         }
     }
 
@@ -223,8 +289,8 @@ final class RunSessionEngine: ObservableObject {
         pauseStartDate = nil
         elapsedSeconds = 0
 
-        location.startAccumulating()
-        health.startWorkout(activityType: .running, start: startDate!)
+        location?.startAccumulating()
+        health?.startWorkout(activityType: .running, start: startDate!)
 
         phase = .running
         scheduleTick()
@@ -235,7 +301,7 @@ final class RunSessionEngine: ObservableObject {
         guard phase == .running else { return }
         tickTimer?.invalidate()
         tickTimer = nil
-        location.pauseTracking()
+        location?.pauseTracking()
         pauseStartDate = Date()
         phase = .paused
     }
@@ -247,7 +313,7 @@ final class RunSessionEngine: ObservableObject {
             pausedAccumulated += Date().timeIntervalSince(p)
         }
         pauseStartDate = nil
-        location.resumeTracking()
+        location?.resumeTracking()
         phase = .running
         scheduleTick()
     }
@@ -267,30 +333,54 @@ final class RunSessionEngine: ObservableObject {
             pauseStartDate = nil
         }
 
-        let collected = location.stopAndCollect()
-        let dist = location.distanceMeters
+        let collected = location?.stopAndCollect() ?? []
+        let dist = location?.distanceMeters ?? 0
         let secs = elapsedSeconds
 
         let pace = (dist > 10)
             ? Int((Double(secs) / dist) * 1000)
             : 0
 
+        guard let health = health else {
+            finishRun(endDate: endDate,
+                      distance: dist,
+                      elapsed: secs,
+                      pace: pace,
+                      avgHR: nil,
+                      collected: collected)
+            return
+        }
+
         health.endWorkout(end: endDate, distance: dist) { [weak self] avgHR, _ in
             guard let self = self else { return }
-            let record = RunRecord(
-                id: UUID(),
-                startDate: self.startDate ?? endDate,
-                endDate: endDate,
-                distanceMeters: dist,
-                elapsedSeconds: secs,
-                avgPaceSecondsPerKm: pace,
-                avgHR: avgHR,
-                routePoints: collected.map(RoutePoint.init)
-            )
-            self.store.save(record)
-            self.lastRecord = record
-            self.phase = .ended
+            self.finishRun(endDate: endDate,
+                           distance: dist,
+                           elapsed: secs,
+                           pace: pace,
+                           avgHR: avgHR,
+                           collected: collected)
         }
+    }
+
+    private func finishRun(endDate: Date,
+                           distance: Double,
+                           elapsed: Int,
+                           pace: Int,
+                           avgHR: Int?,
+                           collected: [CLLocation]) {
+        let record = RunRecord(
+            id: UUID(),
+            startDate: startDate ?? endDate,
+            endDate: endDate,
+            distanceMeters: distance,
+            elapsedSeconds: elapsed,
+            avgPaceSecondsPerKm: pace,
+            avgHR: avgHR,
+            routePoints: collected.map(RoutePoint.init)
+        )
+        store.save(record)
+        lastRecord = record
+        phase = .ended
     }
 
     /// PostRunView dismiss / 用户点回到 IdleHome
@@ -300,11 +390,15 @@ final class RunSessionEngine: ObservableObject {
         elapsedSeconds = 0
         distanceKm = 0
         rollingPaceSecondsPerKm = 0
+        locationAccuracyMeters = -1
+        currentSpeedKmh = 0
+        currentCoordinate = nil
+        routePointCount = 0
         currentHR = nil
         pausedAccumulated = 0
         startDate = nil
-        location.reset()
-        health.reset()
+        location?.reset()
+        health?.reset()
         phase = .idle
     }
 
@@ -339,14 +433,38 @@ final class RunSessionEngine: ObservableObject {
 
     /// 6'12" 或 --'--"
     var paceDisplay: String {
-        guard rollingPaceSecondsPerKm > 0 else { return "--'--\"" }
-        let m = rollingPaceSecondsPerKm / 60
-        let s = rollingPaceSecondsPerKm % 60
+        let secondsPerKm: Int
+        if rollingPaceSecondsPerKm > 0 {
+            secondsPerKm = rollingPaceSecondsPerKm
+        } else {
+            let meters = distanceKm * 1000
+            guard meters > 10, elapsedSeconds > 0 else { return "--'--\"" }
+            secondsPerKm = Int((Double(elapsedSeconds) / meters) * 1000)
+        }
+        let m = secondsPerKm / 60
+        let s = secondsPerKm % 60
         return "\(m)'\(String(format: "%02d", s))\""
     }
 
     /// 5.42 (公里 String, 2 位小数)
     var distanceDisplay: String {
         String(format: "%.2f", distanceKm)
+    }
+
+    /// 8.6 (km/h)
+    var speedDisplay: String {
+        String(format: "%.1f", currentSpeedKmh)
+    }
+
+    /// ±12m 或 --m
+    var accuracyDisplay: String {
+        guard locationAccuracyMeters > 0 else { return "--m" }
+        return "±\(Int(locationAccuracyMeters.rounded()))m"
+    }
+
+    /// 31.23042, 121.47370 或等待定位
+    var coordinateDisplay: String {
+        guard let coordinate = currentCoordinate else { return "等待定位" }
+        return String(format: "%.5f, %.5f", coordinate.latitude, coordinate.longitude)
     }
 }

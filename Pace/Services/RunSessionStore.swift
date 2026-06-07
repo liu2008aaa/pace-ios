@@ -16,30 +16,47 @@ final class RunSessionStore: ObservableObject {
     static let shared = RunSessionStore()
 
     @Published private(set) var records: [RunRecord] = []
+    @Published private(set) var hasStoredRecords: Bool = false
+    @Published private(set) var hasLoadedRecords: Bool = false
 
     private let storageKey = "pace.runs.v1"
+    private let hasStoredRecordsKey = "pace.runs.hasStoredRecords.v1"
 
     private init() {
-        load()
+        let defaults = UserDefaults.standard
+        hasStoredRecords = defaults.bool(forKey: hasStoredRecordsKey)
+        loadAsync()
     }
 
     // MARK: - 持久化
 
     func save(_ record: RunRecord) {
         records.insert(record, at: 0)   // 新的在最前 (历史按时间倒序)
+        hasStoredRecords = true
         persist()
     }
 
     /// 删除某条 (本期未在 UI 触发, 但 v0.5+ Settings 会用)
     func delete(id: UUID) {
         records.removeAll { $0.id == id }
+        hasStoredRecords = !records.isEmpty
         persist()
     }
 
-    private func load() {
-        guard let data = UserDefaults.standard.data(forKey: storageKey) else { return }
-        if let decoded = try? JSONDecoder().decode([RunRecord].self, from: data) {
-            records = decoded
+    private func loadAsync() {
+        let storageKey = self.storageKey
+        let hasStoredRecordsKey = self.hasStoredRecordsKey
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let data = UserDefaults.standard.data(forKey: storageKey)
+            let decoded = data.flatMap { try? JSONDecoder().decode([RunRecord].self, from: $0) } ?? []
+
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.records = decoded
+                self.hasStoredRecords = !decoded.isEmpty
+                self.hasLoadedRecords = true
+                UserDefaults.standard.set(self.hasStoredRecords, forKey: hasStoredRecordsKey)
+            }
         }
     }
 
@@ -47,12 +64,16 @@ final class RunSessionStore: ObservableObject {
         if let data = try? JSONEncoder().encode(records) {
             UserDefaults.standard.set(data, forKey: storageKey)
         }
+        UserDefaults.standard.set(!records.isEmpty, forKey: hasStoredRecordsKey)
     }
 
     /// 测试用 — 清空所有
     func clearAll() {
         records.removeAll()
+        hasStoredRecords = false
+        hasLoadedRecords = true
         UserDefaults.standard.removeObject(forKey: storageKey)
+        UserDefaults.standard.set(false, forKey: hasStoredRecordsKey)
     }
 
     // MARK: - 派生聚合 (供 WeekHistoryView 等读)
